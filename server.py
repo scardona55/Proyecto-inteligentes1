@@ -1,29 +1,43 @@
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
-from scripts.modelo import MiModelo  # Importar el modelo
-from scripts.agentes import Bomberman, MuroMetal, RocaDestructible  # Importar los agentes
+from scripts.modelo import MiModelo
+from scripts.agentes import Bomberman, MuroMetal, RocaDestructible
 
 # Función para visualizar los agentes
 def agent_portrayal(agent):
+    portrayal = {}
     if isinstance(agent, Bomberman):
-        portrayal = {"Shape": "circle", "Color": "blue", "Filled": "true", "r": 0.8, "Layer": 1}
+        portrayal["Shape"] = "imagenes/bomba.jpeg"
+        portrayal["scale"] = 0.9
+        portrayal["Layer"] = 1
     elif isinstance(agent, MuroMetal):
-        portrayal = {"Shape": "rect", "Color": "gray", "Filled": "true", "w": 1, "h": 1, "Layer": 2}
+        portrayal["Shape"] = "imagenes/muro_metal.jpg"
+        portrayal["scale"] = 0.9
+        portrayal["Layer"] = 1
     elif isinstance(agent, RocaDestructible):
-        portrayal = {"Shape": "rect", "Color": "brown", "Filled": "true", "w": 1, "h": 1, "Layer": 2}
+        portrayal["Shape"] = "imagenes/roca.jpg"
+        portrayal["scale"] = 0.9
+        portrayal["Layer"] = 1
     return portrayal
 
-# Configuración de la cuadrícula para la visualización
-grid = CanvasGrid(agent_portrayal, 10, 10, 500, 500)
 
-# Crear el servidor con controles
+def portrayal_with_background(agent):
+    portrayal = agent_portrayal(agent)
+    if portrayal == {}:
+        portrayal = {
+            "Shape": "imagenes/pasto.jpg",  
+            "scale": 1.0,
+            "Layer": 2
+        }
+    return portrayal
+
+grid = CanvasGrid(portrayal_with_background, 10, 10, 500, 500)
+
 server = ModularServer(MiModelo,
                        [grid],
                        "Simulación de Bomberman",
                        {"ancho": 10, "alto": 10})
 
-# Establecer el puerto donde se alojará la simulación
 server.port = 8521
 
-# Iniciar el servidor
 server.launch()
