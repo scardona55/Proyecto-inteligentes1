@@ -21,17 +21,7 @@ def agent_portrayal(agent):
     return portrayal
 
 
-def portrayal_with_background(agent):
-    portrayal = agent_portrayal(agent)
-    if portrayal == {}:
-        portrayal = {
-            "Shape": "imagenes/pasto.jpg",  
-            "scale": 1.0,
-            "Layer": 2
-        }
-    return portrayal
-
-grid = CanvasGrid(portrayal_with_background, 10, 10, 500, 500)
+grid = CanvasGrid(agent_portrayal, 10, 10, 500, 500)
 
 server = ModularServer(MiModelo,
                        [grid],
