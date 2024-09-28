@@ -1,9 +1,9 @@
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
 from scripts.modelo import MiModelo
-from scripts.agentes import Bomberman, MuroMetal, RocaDestructible
+from scripts.agentes import Bomberman, MuroMetal, RocaDestructible, Salida
 
-# Función para visualizar los agentes
+#Visualizacion de los agentes
 def agent_portrayal(agent):
     portrayal = {}
     if isinstance(agent, Bomberman):
@@ -18,6 +18,11 @@ def agent_portrayal(agent):
         portrayal["Shape"] = "imagenes/roca.jpg"
         portrayal["scale"] = 0.9
         portrayal["Layer"] = 1
+    elif isinstance(agent, Salida):
+        portrayal["Shape"] = "imagenes/pasto.jpg"
+        portrayal["scale"] = 0.9
+        portrayal["Layer"] = 1
+
     return portrayal
 
 
