@@ -7,7 +7,7 @@ from scripts.agentes import Bomberman, MuroMetal, RocaDestructible, Salida
 def agent_portrayal(agent):
     portrayal = {}
     if isinstance(agent, Bomberman):
-        portrayal["Shape"] = "imagenes/bomba.jpeg"
+        portrayal["Shape"] = "imagenes/personaje.png"
         portrayal["scale"] = 0.9
         portrayal["Layer"] = 1
     elif isinstance(agent, MuroMetal):
@@ -25,13 +25,18 @@ def agent_portrayal(agent):
 
     return portrayal
 
+alturaMap = 5
+anchoMap = 5
 
-grid = CanvasGrid(agent_portrayal, 10, 10, 500, 500)
 
+grid = CanvasGrid(agent_portrayal, anchoMap, alturaMap, 500, 500)
+
+# Añadir el parámetro porcentaje_obstaculos
 server = ModularServer(MiModelo,
                        [grid],
                        "Simulación de Bomberman",
-                       {"ancho": 10, "alto": 10})
+                       {"ancho": alturaMap, "alto": anchoMap, "porcentaje_obstaculos": 0.2})  # 20% del mapa ocupado por obstáculos
+
 
 server.port = 8521
 
