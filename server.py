@@ -2,8 +2,9 @@ from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
 from scripts.modelo import MiModelo
 from scripts.agentes import Bomberman, MuroMetal, RocaDestructible, Salida
+from scripts.lecturaArc import cargar_archivo, validar_mapa
 
-#Visualizacion de los agentes
+# Visualización de los agentes
 def agent_portrayal(agent):
     portrayal = {}
     if isinstance(agent, Bomberman):
@@ -19,25 +20,36 @@ def agent_portrayal(agent):
         portrayal["scale"] = 0.9
         portrayal["Layer"] = 1
     elif isinstance(agent, Salida):
-        portrayal["Shape"] = "imagenes/pasto.jpg"
+        portrayal["Shape"] = "imagenes/bomba.jpeg"
         portrayal["scale"] = 0.9
         portrayal["Layer"] = 1
 
     return portrayal
 
-alturaMap = 5
-anchoMap = 5
+# Cargar el archivo y obtener la ruta
+ruta_archivo = cargar_archivo()  # Permitir al usuario seleccionar un archivo
 
+# Inicializar mapa
+mapa = None
 
-grid = CanvasGrid(agent_portrayal, anchoMap, alturaMap, 500, 500)
+# Verificar si el archivo es válido
+if ruta_archivo:
+    mapa = validar_mapa(ruta_archivo)  # Obtener el mapa como lista de listas
+    if mapa is None:  # Si el mapa es inválido
+        print("No se pudo cargar un mapa válido. Usando mapa por defecto.")
+        mapa = None  # Indicamos que no hay mapa cargado para que el modelo lo genere aleatoriamente
+else:
+    mapa = None  # Si no se carga archivo, se usará la generación aleatoria en el modelo
 
-# Añadir el parámetro porcentaje_obstaculos
+# Crear el CanvasGrid con imagen de fondo
+altoM = 4
+anchoM = 7
+grid = CanvasGrid(agent_portrayal, anchoM, altoM)  # Cambiado a dimensiones dinámicas
+
 server = ModularServer(MiModelo,
                        [grid],
                        "Simulación de Bomberman",
-                       {"ancho": alturaMap, "alto": anchoMap, "porcentaje_obstaculos": 0.2})  # 20% del mapa ocupado por obstáculos
-
+                       {"mapa": mapa, "ancho": anchoM, "alto": altoM})
 
 server.port = 8521
-
 server.launch()
