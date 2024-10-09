@@ -5,10 +5,11 @@ from .agentes import Bomberman, MuroMetal, RocaDestructible, Salida
 import random
 
 class MiModelo(Model):
-    def __init__(self, mapa=None, ancho=10, alto=10):
+    def __init__(self, mapa=None, ancho=10, alto=10, algoritmo='random'):
         super().__init__()
         self.grid = MultiGrid(ancho, alto, True)
         self.schedule = RandomActivation(self)
+        self.algoritmo = algoritmo  # Almacena el algoritmo seleccionado
 
         if mapa is not None:
             self.cargar_mapa(mapa)
@@ -36,6 +37,7 @@ class MiModelo(Model):
 
         # Crear y ubicar la salida en una posición aleatoria
         salida = Salida(self.next_id(), self)
+        self.schedule.add(salida)
         self.grid.place_agent(salida, self._posicion_aleatoria_libre())
 
     def cargar_mapa(self, mapa):
@@ -71,4 +73,14 @@ class MiModelo(Model):
                 return (x, y)
 
     def step(self):
-        self.schedule.step()
+        # Llamar al método de acuerdo al algoritmo seleccionado
+        for agente in self.schedule.agents:
+            if isinstance(agente, Bomberman):
+                if self.algoritmo == 'random':
+                    agente.step2()  # Llama al método de movimientos aleatorios
+                elif self.algoritmo == 'profundidad':
+                    agente.step()  # Llama al método de búsqueda en profundidad
+                elif self.algoritmo == 'amplitud':
+                    agente.step3()  # Llama al método de búsqueda en anchura
+            else:
+                agente.step()

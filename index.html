@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación de Bomberman</title>
+    <script>
+        function updateAlgorithm() {
+            const select = document.getElementById("algorithmSelect");
+            const algorithm = select.value;
+            fetch('/set_algorithm?alg=' + algorithm);  // Llama a la ruta para establecer el algoritmo
+        }
+    </script>
+</head>
+<body>
+    <h1>Simulación de Bomberman</h1>
+    <label for="algorithmSelect">Seleccionar algoritmo:</label>
+    <select id="algorithmSelect" onchange="updateAlgorithm()">
+        <option value="Aleatorio">Aleatorio</option>
+        <option value="DFS">DFS</option>
+        <option value="BFS">BFS</option>
+    </select>
+    <div id="grid"></div>
+</body>
+</html>

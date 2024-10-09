@@ -4,11 +4,25 @@ from collections import deque
 
 
 class Bomberman(Agent):
-    def __init__(self, unique_id, model):
+    def __init__(self, unique_id, model, algoritmo='random'):
         super().__init__(unique_id, model)
-        self.stack = []  # Pila para almacenar las posiciones por explorar
-        self.visitados = set()  # Conjunto para almacenar posiciones visitadas
-        self.queue = deque()  # Cola para almacenar las posiciones por explorar
+        self.stack = [] 
+        self.visitados = set()
+        self.queue = deque()  
+        self.algoritmo = algoritmo
+
+
+        def seleccionar_algoritmo(self):
+            # Llama al método correspondiente según el algoritmo seleccionado
+            if self.algoritmo == 'random':
+                self.step2()  # Llama al método de movimientos aleatorios
+            elif self.algoritmo == 'profundidad':
+                self.step()  # Llama al método de búsqueda en profundidad
+            elif self.algoritmo == 'amplitud':
+                self.step3()  # Llama al método de búsqueda en amplitud
+            else:
+                raise ValueError("Algoritmo no válido. Elija 'random', 'profundidad' o 'amplitud'.")
+
 
 
     def step2(self):
