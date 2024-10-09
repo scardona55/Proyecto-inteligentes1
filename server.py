@@ -12,15 +12,15 @@ def agent_portrayal(agent):
         portrayal["scale"] = 0.9
         portrayal["Layer"] = 1
     elif isinstance(agent, MuroMetal):
-        portrayal["Shape"] = "imagenes/muro_metal.jpg"
+        portrayal["Shape"] = "imagenes/muro_metal2.jpeg"
         portrayal["scale"] = 0.9
         portrayal["Layer"] = 1
     elif isinstance(agent, RocaDestructible):
-        portrayal["Shape"] = "imagenes/roca.jpg"
+        portrayal["Shape"] = "imagenes/muro_roca.jpg"
         portrayal["scale"] = 0.9
         portrayal["Layer"] = 1
     elif isinstance(agent, Salida):
-        portrayal["Shape"] = "imagenes/bomba.jpeg"
+        portrayal["Shape"] = "imagenes/salida.jpeg"
         portrayal["scale"] = 0.9
         portrayal["Layer"] = 1
 
