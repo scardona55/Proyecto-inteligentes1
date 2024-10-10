@@ -94,12 +94,19 @@ class Bomberman(Agent):
                     self.model.grid.move_agent(self, posicion_anterior)
 
     def step3(self):
-        if self.pos not in self.visitados:
+        # Paso 1: Verificar si estamos en la posición inicial
+        if not self.queue and self.pos not in self.visitados:
             self.queue.append(self.pos)
             self.visitados.add(self.pos)
 
+        # Paso 2: Obtener los hijos del primer elemento en la cola
         if self.queue:
-            posicion_actual = self.queue[0]
+            # Eliminamos y obtenemos la posición actual de la cola
+            posicion_actual = self.queue.popleft()
+
+            # Mover al agente a la posición actual para visualizar el movimiento
+            self.model.grid.move_agent(self, posicion_actual)
+            self.marcar_casilla(posicion_actual)  # Marcar solo después de mover al agente
 
             movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]
 
@@ -110,18 +117,21 @@ class Bomberman(Agent):
                     continue
 
                 if nueva_posicion not in self.visitados:
+                    # Comprobamos si hay obstáculos
                     if not any(isinstance(agente, (MuroMetal, RocaDestructible)) for agente in self.model.grid.get_cell_list_contents(nueva_posicion)):
-                        self.model.grid.move_agent(self, nueva_posicion)
-                        self.marcar_casilla(nueva_posicion)  # Marcar la nueva casilla
                         self.queue.append(nueva_posicion)
                         self.visitados.add(nueva_posicion)
 
+                        # Si encontramos la salida, mover al agente y terminar
                         for agente in self.model.grid.get_cell_list_contents(nueva_posicion):
                             if isinstance(agente, Salida):
                                 print("¡Bomberman ha llegado a la salida!")
+                                # Mover al agente a la posición de salida
+                                self.model.grid.move_agent(self, nueva_posicion)
+                                self.marcar_casilla(nueva_posicion)  # Marcar solo la casilla de la salida
                                 self.model.running = False
+                                return  # Salir de la función
 
-            self.queue.popleft()
 
     def stepUniformCost(self):
         print("Iniciando paso de búsqueda de costo uniforme")
