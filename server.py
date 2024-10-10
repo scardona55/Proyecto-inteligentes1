@@ -27,8 +27,12 @@ def agent_portrayal(agent):
         portrayal["Shape"] = "imagenes/pasto.jpg"
         portrayal["scale"] = 1
         portrayal["Layer"] = 0
+        if agent.visit_number is not None:
+            portrayal["text"] = str(agent.visit_number)  # Mostrar número de paso
+            portrayal["text_color"] = "black"
 
     return portrayal
+
 
 # Cargar archivo del mapa
 ruta_archivo = cargar_archivo()
@@ -48,7 +52,7 @@ altoM = 4
 anchoM = 7
 
 # Seleccionar el algoritmo a usar ('random', 'profundidad', 'amplitud')
-algoritmo = 'profundidad'
+algoritmo = 'amplitud'
 
 grid = CanvasGrid(agent_portrayal, anchoM, altoM, 500, 500)
 
