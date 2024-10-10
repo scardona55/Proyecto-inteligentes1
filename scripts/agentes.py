@@ -12,17 +12,15 @@ class Bomberman(Agent):
         self.algoritmo = algoritmo
         self.visit_count = 0
 
-
-        def seleccionar_algoritmo(self):
-            # Llama al método correspondiente según el algoritmo seleccionado
-            if self.algoritmo == 'random':
-                self.step2()  # Llama al método de movimientos aleatorios
-            elif self.algoritmo == 'profundidad':
-                self.step()  # Llama al método de búsqueda en profundidad
-            elif self.algoritmo == 'amplitud':
-                self.step3()  # Llama al método de búsqueda en amplitud
-            else:
-                raise ValueError("Algoritmo no válido. Elija 'random', 'profundidad' o 'amplitud'.")
+    def seleccionar_algoritmo(self):
+        if self.algoritmo == 'random':
+            self.step2()
+        elif self.algoritmo == 'profundidad':
+            self.step()
+        elif self.algoritmo == 'amplitud':
+            self.step3()
+        else:
+            raise ValueError("Algoritmo no válido. Elija 'random', 'profundidad' o 'amplitud'.")
 
 
 
@@ -141,6 +139,7 @@ class Salida(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
 
+#ensayo implementacion contador de pasos y marcarlos
 class Camino(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)

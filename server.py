@@ -26,7 +26,7 @@ def agent_portrayal(agent):
     elif isinstance(agent, Camino):
         portrayal["Shape"] = "imagenes/pasto.jpg"
         portrayal["scale"] = 1
-        portrayal["Layer"] = 0  # Para que esté en el fondo
+        portrayal["Layer"] = 0
 
     return portrayal
 
@@ -44,22 +44,18 @@ if ruta_archivo:
 else:
     mapa = None  # Si no se carga archivo, se usará la generación aleatoria en el modelo
 
-# Definir el tamaño del mapa
 altoM = 4
 anchoM = 7
 
 # Seleccionar el algoritmo a usar ('random', 'profundidad', 'amplitud')
-algoritmo = 'amplitud'  # Cambia esto según tu preferencia
+algoritmo = 'profundidad'
 
-# Crear la grilla de visualización
 grid = CanvasGrid(agent_portrayal, anchoM, altoM, 500, 500)
 
-# Configurar el servidor para lanzar la simulación
 server = ModularServer(MiModelo,
                        [grid],
                        "Simulación de Bomberman",
                        {"mapa": mapa, "ancho": anchoM, "alto": altoM, "algoritmo": algoritmo})
 
-# Configurar el puerto del servidor
 server.port = 8521
 server.launch()
