@@ -1,6 +1,7 @@
 from mesa import Agent, Model
 import random
 from collections import deque
+import heapq
 
 
 class Bomberman(Agent):
@@ -8,7 +9,9 @@ class Bomberman(Agent):
         super().__init__(unique_id, model)
         self.stack = [] 
         self.visitados = set()
-        self.queue = deque()  
+        self.queue = deque() 
+        self.priorityqueue= []
+        self.costos = {}  # Diccionario para almacenar costos acumulados
         self.algoritmo = algoritmo
         self.visit_count = 0  # Contador de pasos
 
@@ -19,6 +22,8 @@ class Bomberman(Agent):
             self.step()
         elif self.algoritmo == 'amplitud':
             self.step3()
+        elif self.algoritmo == 'costouniforme':
+            self.stepUniformCost()
         else:
             raise ValueError("Algoritmo no válido. Elija 'random', 'profundidad' o 'amplitud'.")
 
@@ -118,6 +123,74 @@ class Bomberman(Agent):
 
             self.queue.popleft()
 
+    def stepUniformCost(self):
+        print("Iniciando paso de búsqueda de costo uniforme")
+        # Inicializar la cola de prioridad si está vacía
+        if not self.priorityqueue:
+            # Agregar la posición inicial a la cola de prioridad
+            heapq.heappush(self.priorityqueue, (0, self.pos))
+            self.costos[self.pos] = 0  # Costo acumulado para la posición inicial
+
+        # Si la cola está vacía después de la inicialización, no hay más nodos para explorar
+        if not self.priorityqueue:
+            print("No hay más nodos para explorar.")
+            self.model.running = False
+            return
+
+        # Repetir hasta encontrar un nodo no visitado o hasta que la cola esté vacía
+        while self.priorityqueue:
+            # Obtener el nodo con el costo acumulado más bajo
+            costo_acumulado, posicion_actual = heapq.heappop(self.priorityqueue)
+
+            # Si el nodo ya fue visitado, continuar con el siguiente
+            if posicion_actual in self.visitados:
+                continue
+
+            # Marcar el nodo como visitado
+            self.visitados.add(posicion_actual)
+
+            # Mover el agente a la posición actual
+            self.model.grid.move_agent(self, posicion_actual)
+            self.marcar_casilla(posicion_actual)
+            #self.visit_count += 1  # Incrementar el contador de pasos
+
+            # Verificar si se ha llegado a la salida
+            contenido_celda_actual = self.model.grid.get_cell_list_contents(posicion_actual)
+            for agente in contenido_celda_actual:
+                if isinstance(agente, Salida):
+                    print("¡Bomberman ha llegado a la salida!")
+                    self.model.running = False
+                    return
+
+            # Explorar los vecinos del nodo actual
+            movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]  # Movimientos posibles
+            for movimiento in movimientos:
+                nueva_posicion = (posicion_actual[0] + movimiento[0], posicion_actual[1] + movimiento[1])
+
+                # Verificar si la nueva posición está dentro de los límites
+                if self.model.grid.out_of_bounds(nueva_posicion):
+                    continue
+
+                # Obtener el contenido de la nueva celda
+                contenido_celda = self.model.grid.get_cell_list_contents(nueva_posicion)
+
+                # Ignorar si hay un obstáculo
+                if any(isinstance(agente, (MuroMetal, RocaDestructible)) for agente in contenido_celda):
+                    continue
+
+                nuevo_costo = costo_acumulado + 10  # Asumimos que el costo de cada movimiento es 10
+
+                # Si la nueva posición no ha sido visitada o encontramos un costo menor
+                if nueva_posicion not in self.costos or nuevo_costo < self.costos[nueva_posicion]:
+                    self.costos[nueva_posicion] = nuevo_costo
+                    heapq.heappush(self.priorityqueue, (nuevo_costo, nueva_posicion))
+
+            # Terminar la función después de expandir un nodo
+            return
+
+        # Si hemos salido del bucle sin encontrar un nodo no visitado, no hay más nodos para explorar
+        print("No hay más nodos para explorar.")
+        self.model.running = False
 
 
 #Agentes estaticos

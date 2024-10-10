@@ -111,5 +111,7 @@ class MiModelo(Model):
                     agente.step() 
                 elif self.algoritmo == 'amplitud':
                     agente.step3() 
+                elif self.algoritmo == 'costouniforme':
+                    agente.stepUniformCost() 
             else:
                 agente.step()

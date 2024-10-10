@@ -52,7 +52,7 @@ altoM = 4
 anchoM = 7
 
 # Seleccionar el algoritmo a usar ('random', 'profundidad', 'amplitud')
-algoritmo = 'amplitud'
+algoritmo = 'profundidad'
 
 grid = CanvasGrid(agent_portrayal, anchoM, altoM, 500, 500)
 
