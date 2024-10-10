@@ -10,6 +10,7 @@ class Bomberman(Agent):
         self.visitados = set()
         self.queue = deque()  
         self.algoritmo = algoritmo
+        self.visit_count = 0
 
 
         def seleccionar_algoritmo(self):
@@ -26,7 +27,7 @@ class Bomberman(Agent):
 
 
     def step2(self):
-        movimientos = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         random.shuffle(movimientos)
 
         for movimiento in movimientos:
@@ -54,8 +55,7 @@ class Bomberman(Agent):
         # 2. Expandir la posición actual si la pila no está vacía
         if self.stack:
             posicion_actual = self.stack[-1]  # Obtiene el último elemento de la pila sin eliminarlo
-            # Orden fijo de movimientos: arriba, abajo, izquierda, derecha
-            movimientos = [(0, 1), (0, -1), (-1, 0), (1, 0)]
+            movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]
             hay_hijos = False  # Bandera para verificar si hay movimientos válidos
 
             for movimiento in movimientos:
@@ -100,8 +100,7 @@ class Bomberman(Agent):
         if self.queue:
             posicion_actual = self.queue[0]  # Obtiene el primer elemento de la cola sin eliminarlo todavía
 
-            # Orden fijo de movimientos: arriba, abajo, izquierda, derecha
-            movimientos = [(0, 1), (0, -1), (-1, 0), (1, 0)]
+            movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]
 
             for movimiento in movimientos:
                 nueva_posicion = (posicion_actual[0] + movimiento[0], posicion_actual[1] + movimiento[1])
@@ -141,3 +140,16 @@ class RocaDestructible(Agent):
 class Salida(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
+
+class Camino(Agent):
+    def __init__(self, unique_id, model):
+        super().__init__(unique_id, model)
+        self.visit_number = None  # Inicialmente ninguna casilla ha sido visitada
+
+    def mark_as_visited(self, number):
+        """Marcar la casilla como visitada con un número secuencial."""
+        if self.visit_number is None:  # Solo marca si no ha sido visitada
+            self.visit_number = number
+
+    def step(self):
+        pass  # No realiza acciones por sí mismo

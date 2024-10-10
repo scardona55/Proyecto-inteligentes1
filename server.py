@@ -1,7 +1,7 @@
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
 from scripts.modelo import MiModelo
-from scripts.agentes import Bomberman, MuroMetal, RocaDestructible, Salida
+from scripts.agentes import Bomberman, MuroMetal, RocaDestructible, Salida, Camino
 from scripts.lecturaArc import cargar_archivo, validar_mapa
 
 # Visualización de los agentes
@@ -9,25 +9,29 @@ def agent_portrayal(agent):
     portrayal = {}
     if isinstance(agent, Bomberman):
         portrayal["Shape"] = "imagenes/personaje.png"
-        portrayal["scale"] = 0.9
-        portrayal["Layer"] = 1
+        portrayal["scale"] = 1
+        portrayal["Layer"] = 3
     elif isinstance(agent, MuroMetal):
         portrayal["Shape"] = "imagenes/muro_metal2.jpeg"
-        portrayal["scale"] = 0.9
+        portrayal["scale"] = 1
         portrayal["Layer"] = 1
     elif isinstance(agent, RocaDestructible):
         portrayal["Shape"] = "imagenes/muro_roca.jpg"
-        portrayal["scale"] = 0.9
+        portrayal["scale"] = 1
         portrayal["Layer"] = 1
     elif isinstance(agent, Salida):
         portrayal["Shape"] = "imagenes/salida.jpeg"
-        portrayal["scale"] = 0.9
+        portrayal["scale"] = 1
         portrayal["Layer"] = 1
+    elif isinstance(agent, Camino):
+        portrayal["Shape"] = "imagenes/pasto.jpg"
+        portrayal["scale"] = 1
+        portrayal["Layer"] = 0  # Para que esté en el fondo
 
     return portrayal
 
-
-ruta_archivo = cargar_archivo() 
+# Cargar archivo del mapa
+ruta_archivo = cargar_archivo()
 
 mapa = None
 
@@ -40,18 +44,22 @@ if ruta_archivo:
 else:
     mapa = None  # Si no se carga archivo, se usará la generación aleatoria en el modelo
 
+# Definir el tamaño del mapa
 altoM = 4
 anchoM = 7
 
-# Aquí puedes seleccionar el algoritmo que desees usar
-algoritmo = 'profundidad'  # Cambia esto según tu preferencia
+# Seleccionar el algoritmo a usar ('random', 'profundidad', 'amplitud')
+algoritmo = 'amplitud'  # Cambia esto según tu preferencia
 
-grid = CanvasGrid(agent_portrayal, anchoM, altoM)
+# Crear la grilla de visualización
+grid = CanvasGrid(agent_portrayal, anchoM, altoM, 500, 500)
 
+# Configurar el servidor para lanzar la simulación
 server = ModularServer(MiModelo,
                        [grid],
                        "Simulación de Bomberman",
                        {"mapa": mapa, "ancho": anchoM, "alto": altoM, "algoritmo": algoritmo})
 
+# Configurar el puerto del servidor
 server.port = 8521
 server.launch()
