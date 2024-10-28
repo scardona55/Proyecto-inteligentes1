@@ -64,7 +64,7 @@ class Bomberman(Agent):
 
         if self.stack:
             posicion_actual = self.stack[-1]
-            movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]
+            movimientos = [(-1, 0), (0, 1), (1, 0), (0, -1)]
             hay_hijos = False
 
             for movimiento in movimientos:
@@ -108,7 +108,7 @@ class Bomberman(Agent):
             self.model.grid.move_agent(self, posicion_actual)
             self.marcar_casilla(posicion_actual)  # Marcar solo después de mover al agente
 
-            movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]
+            movimientos = [(-1, 0), (0, 1), (1, 0), (0, -1)]
 
             for movimiento in movimientos:
                 nueva_posicion = (posicion_actual[0] + movimiento[0], posicion_actual[1] + movimiento[1])
@@ -173,8 +173,11 @@ class Bomberman(Agent):
                     return
 
             # Explorar los vecinos del nodo actual
-            movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]  # Movimientos posibles
-            for movimiento in movimientos:
+            # Definir el orden de prioridad en los movimientos (Arriba, Izquierda, Derecha, Abajo)
+            movimientos = [(-1, 0), (0, 1), (1, 0), (0, -1)]  # Movimientos posibles en orden de prioridad
+            penalizaciones = [0, 1, 2, 3]  # Penalización adicional para los primeros movimientos (Arriba, Izquierda)
+
+            for i, movimiento in enumerate(movimientos):
                 nueva_posicion = (posicion_actual[0] + movimiento[0], posicion_actual[1] + movimiento[1])
 
                 # Verificar si la nueva posición está dentro de los límites
@@ -188,7 +191,8 @@ class Bomberman(Agent):
                 if any(isinstance(agente, (MuroMetal, RocaDestructible)) for agente in contenido_celda):
                     continue
 
-                nuevo_costo = costo_acumulado + 10  # Asumimos que el costo de cada movimiento es 10
+                # Sumar penalización adicional basada en el índice de los movimientos
+                nuevo_costo = costo_acumulado + 10 + penalizaciones[i]  # Penalización adicional para algunos movimientos
 
                 # Si la nueva posición no ha sido visitada o encontramos un costo menor
                 if nueva_posicion not in self.costos or nuevo_costo < self.costos[nueva_posicion]:
