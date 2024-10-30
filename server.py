@@ -1,7 +1,7 @@
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
 from scripts.modelo import MiModelo
-from scripts.agentes import Bomberman, MuroMetal, RocaDestructible, Salida, Camino
+from scripts.agentes import Bomberman, MuroMetal, RocaDestructible, Salida, Camino, Globo
 from scripts.lecturaArc import cargar_archivo, validar_mapa
 
 # Visualización de los agentes
@@ -30,6 +30,10 @@ def agent_portrayal(agent):
         if agent.visit_number is not None:
             portrayal["text"] = str(agent.visit_number)  # Mostrar número de paso
             portrayal["text_color"] = "black"
+    elif isinstance(agent, Globo):  # Visualización del enemigo Globo
+        portrayal["Shape"] = "imagenes/globo.png"
+        portrayal["scale"] = 1
+        portrayal["Layer"] = 2
 
     return portrayal
 
@@ -51,15 +55,24 @@ else:
 altoM = 5
 anchoM = 7
 
-# Seleccionar el algoritmo a usar ('random', 'profundidad', 'amplitud')
-algoritmo = 'costouniforme'
+# Seleccionar el algoritmo a usar ('random', 'profundidad', 'amplitud', 'costouniforme')
+algoritmo = 'random'
+
+# Definir cantidad de enemigos Globo a generar aleatoriamente en el mapa
+cantidad_globos = 3
 
 grid = CanvasGrid(agent_portrayal, anchoM, altoM, 500, 500)
 
 server = ModularServer(MiModelo,
                        [grid],
                        "Simulación de Bomberman",
-                       {"mapa": mapa, "ancho": anchoM, "alto": altoM, "algoritmo": algoritmo})
+                       {
+                           "mapa": mapa,
+                           "ancho": anchoM,
+                           "alto": altoM,
+                           "algoritmo": algoritmo,
+                           "cantidad_globos": cantidad_globos
+                       })
 
 server.port = 8521
 server.launch()

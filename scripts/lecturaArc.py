@@ -33,7 +33,7 @@ def validar_mapa(ruta_archivo):
                     return None
             
             # Verificación de caracteres
-            caracteres_validos = {'C', 'C_b', 'M', 'R', 'S'}
+            caracteres_validos = {'C', 'C_b', 'M', 'R', 'S', 'C_G', 'B'}  # Incluye 'B' para la bomba y 'C_G' para el enemigo
             for fila in mapa:
                 for celda in fila:
                     if celda not in caracteres_validos:
