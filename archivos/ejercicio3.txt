@@ -2,4 +2,4 @@ C,C,M,C,C,C,C
 C,M,C,C,C,M,C
 C,C,M,M,C,M,S
 C,M,C,C,C,M,C
-C_b,C,C,M,C,C,C
+C_b,C,C_G,M,C,C,C

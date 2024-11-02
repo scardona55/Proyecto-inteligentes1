@@ -9,7 +9,7 @@ from .salida import Salida
 from .globo import Globo  # Asegúrate de tener la clase Globo definida
 
 class Bomberman(Agent):
-    def __init__(self, unique_id, model, algoritmo='random', vida=3):
+    def __init__(self, unique_id, model, algoritmo='random', vida=3, beam_width = 3):
         super().__init__(unique_id, model)
         self.stack = [] 
         self.visitados = set()
@@ -19,6 +19,7 @@ class Bomberman(Agent):
         self.algoritmo = algoritmo
         self.visit_count = 0  # Contador de pasos
         self.vida = vida  # Nueva propiedad de vida
+        self.beam_width = beam_width
 
     def seleccionar_algoritmo(self):
         if self.algoritmo == 'random':
@@ -29,8 +30,10 @@ class Bomberman(Agent):
             self.step3()
         elif self.algoritmo == 'costouniforme':
             self.stepUniformCost()
+        elif self.algoritmo == 'Bean':
+            self.stepBeamSearch()
         else:
-            raise ValueError("Algoritmo no válido. Elija 'random', 'profundidad' o 'amplitud'.")
+            raise ValueError("Algoritmo no válido. Elija 'random', 'profundidad', 'amplitud' o 'Bean Search'.")
 
     def marcar_casilla(self, posicion):
         """Marca la casilla en la que está Bomberman con el número de paso."""
@@ -162,6 +165,62 @@ class Bomberman(Agent):
                                 self.marcar_casilla(nueva_posicion)
                                 self.model.running = False
                                 return
+    
+    def stepBeamSearch(self):
+        """Algoritmo de Beam Search que mueve a Bomberman paso a paso."""
+        # Si la cola está vacía, inicializa la búsqueda
+        if not self.priorityqueue:
+            initial_state = (self.heuristic(self.pos), self.pos)
+            heapq.heappush(self.priorityqueue, initial_state)
+
+        # Realiza un único movimiento en cada paso
+        if self.priorityqueue:
+            # Limitar la búsqueda al ancho del haz
+            current_level = []
+            for _ in range(min(self.beam_width, len(self.priorityqueue))):
+                _, posicion_actual = heapq.heappop(self.priorityqueue)
+
+                # Chequear si Bomberman llegó a la salida
+                if any(isinstance(agente, Salida) for agente in self.model.grid.get_cell_list_contents(posicion_actual)):
+                    print("¡Bomberman ha llegado a la salida!")
+                    self.model.running = False
+                    return
+
+                # Añadir la posición actual a visitados y mover Bomberman
+                self.visitados.add(posicion_actual)
+                self.model.grid.move_agent(self, posicion_actual)
+                self.marcar_casilla(posicion_actual)
+
+                # Evaluar interacciones con enemigos
+                if self.interaccion_con_globo(posicion_actual):
+                    if self.vida <= 0:
+                        return
+
+                # Generar posiciones adyacentes y añadirlas al nivel actual de búsqueda
+                movimientos = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+                for movimiento in movimientos:
+                    nueva_posicion = (posicion_actual[0] + movimiento[0], posicion_actual[1] + movimiento[1])
+
+                    # Verificar si la posición es válida
+                    if self.model.grid.out_of_bounds(nueva_posicion) or nueva_posicion in self.visitados:
+                        continue
+
+                    # Evitar obstáculos
+                    contenido_celda = self.model.grid.get_cell_list_contents(nueva_posicion)
+                    if any(isinstance(agente, (MuroMetal, RocaDestructible)) for agente in contenido_celda):
+                        continue
+
+                    # Calcular heurística y añadir a la cola de prioridad
+                    heuristic_score = self.heuristic(nueva_posicion)
+                    heapq.heappush(current_level, (heuristic_score, nueva_posicion))
+
+            # Retener solo los mejores nodos según el ancho del haz
+            self.priorityqueue = heapq.nsmallest(self.beam_width, current_level)
+
+    def heuristic(self, posicion):
+        """Función heurística para estimar la distancia a la salida."""
+        salida_pos = self.model.salida_pos
+        return abs(posicion[0] - salida_pos[0]) + abs(posicion[1] - salida_pos[1])
 
     def stepUniformCost(self):
         if not self.priorityqueue:

@@ -12,6 +12,8 @@ class MiModelo(Model):
         self.algoritmo = algoritmo
         self.cantidad_globos = cantidad_globos  # Cantidad de enemigos Globo a generar
         self.bomberman = None  # Atributo para almacenar la referencia a Bomberman
+        self.salida_pos = None
+        
 
         if mapa is not None:
             self.cargar_mapa(mapa)
@@ -35,6 +37,7 @@ class MiModelo(Model):
         self.schedule.add(salida)
         posicion_salida = self._posicion_aleatoria_libre()
         self.grid.place_agent(salida, posicion_salida)
+        self.salida_pos = posicion_salida
 
         # Asegurar que la salida esté sobre un camino
         camino_salida = Camino(self.next_id(), self)
@@ -109,6 +112,7 @@ class MiModelo(Model):
                     salida = Salida(self.next_id(), self)
                     self.schedule.add(salida)
                     self.grid.place_agent(salida, (x, y))
+                    self.salida_pos = (x, y)
                     salida_generada = True
 
     def _posicion_aleatoria_libre(self):
@@ -132,6 +136,8 @@ class MiModelo(Model):
                     agente.step3() 
                 elif self.algoritmo == 'costouniforme':
                     agente.stepUniformCost() 
+                elif self.algoritmo == 'Bean':
+                    agente.stepBeamSearch()
             elif isinstance(agente, Globo):
                 agente.mover_aleatorio()
             else:

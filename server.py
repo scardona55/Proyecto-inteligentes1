@@ -52,11 +52,11 @@ if ruta_archivo:
 else:
     mapa = None  # Si no se carga archivo, se usará la generación aleatoria en el modelo
 
-altoM = 5
-anchoM = 7
+altoM = 10
+anchoM = 10
 
-# Seleccionar el algoritmo a usar ('random', 'profundidad', 'amplitud', 'costouniforme')
-algoritmo = 'random'
+# Seleccionar el algoritmo a usar ('random', 'profundidad', 'amplitud', 'costouniforme'o 'Bean')
+algoritmo = 'Bean'
 
 # Definir cantidad de enemigos Globo a generar aleatoriamente en el mapa
 cantidad_globos = 3
