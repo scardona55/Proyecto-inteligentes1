@@ -9,7 +9,7 @@ from .salida import Salida
 from .globo import Globo  # Asegúrate de tener la clase Globo definida
 
 class Bomberman(Agent):
-    def __init__(self, unique_id, model, algoritmo='random', vida=3, beam_width = 3):
+    def __init__(self, unique_id, model, algoritmo='random', vida=1, beam_width = 3):
         super().__init__(unique_id, model)
         self.stack = [] 
         self.visitados = set()
@@ -20,6 +20,7 @@ class Bomberman(Agent):
         self.visit_count = 0  # Contador de pasos
         self.vida = vida  # Nueva propiedad de vida
         self.beam_width = beam_width
+        self.camino = []
 
     def seleccionar_algoritmo(self):
         if self.algoritmo == 'random':
@@ -32,8 +33,10 @@ class Bomberman(Agent):
             self.stepUniformCost()
         elif self.algoritmo == 'Bean':
             self.stepBeamSearch()
+        elif self.algoritmo == 'Hill':
+            self.stepHillClimbing()
         else:
-            raise ValueError("Algoritmo no válido. Elija 'random', 'profundidad', 'amplitud' o 'Bean Search'.")
+            raise ValueError("Algoritmo no válido. Elija 'random', 'profundidad', 'amplitud' o 'Bean Search' o 'Hill'.")
 
     def marcar_casilla(self, posicion):
         """Marca la casilla en la que está Bomberman con el número de paso."""
@@ -67,6 +70,7 @@ class Bomberman(Agent):
         return False
 
     def step2(self):
+        #Movimientos random
         movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         random.shuffle(movimientos)
 
@@ -92,6 +96,7 @@ class Bomberman(Agent):
                 break
 
     def step(self):
+        #Profundidad
         if self.pos not in self.visitados:
             self.stack.append(self.pos)
             self.visitados.add(self.pos)
@@ -132,6 +137,7 @@ class Bomberman(Agent):
                     self.model.grid.move_agent(self, posicion_anterior)
 
     def step3(self):
+        #Anchura
         if not self.queue and self.pos not in self.visitados:
             self.queue.append(self.pos)
             self.visitados.add(self.pos)
@@ -197,7 +203,7 @@ class Bomberman(Agent):
                         return
 
                 # Generar posiciones adyacentes y añadirlas al nivel actual de búsqueda
-                movimientos = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+                movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]
                 for movimiento in movimientos:
                     nueva_posicion = (posicion_actual[0] + movimiento[0], posicion_actual[1] + movimiento[1])
 
@@ -272,3 +278,67 @@ class Bomberman(Agent):
                     heapq.heappush(self.priorityqueue, (nuevo_costo, nueva_posicion))
 
             return
+
+    def stepHillClimbing(self):
+        """Algoritmo de Hill Climbing con retroceso que mueve a Bomberman paso a paso."""
+
+        # Marca la posición actual como visitada y mueve a Bomberman
+        self.visitados.add(self.pos)
+        self.marcar_casilla(self.pos)
+
+        # Verifica si Bomberman ha llegado a la salida
+        if any(isinstance(agente, Salida) for agente in self.model.grid.get_cell_list_contents(self.pos)):
+            print("¡Bomberman ha llegado a la salida!")
+            self.model.running = False
+            return
+
+        # Checa interacciones con enemigos
+        if self.interaccion_con_globo(self.pos):
+            if self.vida <= 0:
+                return
+
+        # Genera posiciones adyacentes y calcula sus heurísticas
+        movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]
+        vecinos = []
+        for movimiento in movimientos:
+            nueva_posicion = (self.pos[0] + movimiento[0], self.pos[1] + movimiento[1])
+
+            # Asegúrate de que la posición es válida y no visitada
+            if self.model.grid.out_of_bounds(nueva_posicion) or nueva_posicion in self.visitados:
+                continue
+
+            # Verifica que no haya obstáculos en la nueva posición
+            contenido_celda = self.model.grid.get_cell_list_contents(nueva_posicion)
+            if any(isinstance(agente, (MuroMetal, RocaDestructible)) for agente in contenido_celda):
+                continue
+
+            # Calcular la heurística y añadir la posición a la lista de vecinos
+            heuristic_score = self.heuristic(nueva_posicion)
+            vecinos.append((heuristic_score, nueva_posicion))
+
+        # Si no hay vecinos, retrocede al último estado (backtracking)
+        if not vecinos:
+            if self.camino:  # Camino guarda el historial de posiciones visitadas para retroceder
+                self.pos = self.camino.pop()  # Retrocede a la posición anterior
+                print("Retrocediendo a la posición:", self.pos)
+            return
+
+        # Ordena los vecinos por heurística y elige el mejor
+        vecinos.sort(key=lambda x: x[0])
+        mejor_vecino = vecinos[0]
+
+        # Guarda la posición actual en el historial antes de moverse
+        self.camino.append(self.pos)
+        nueva_pos = mejor_vecino[1]
+
+        # Verificación antes de mover a Bomberman
+        if self.pos != nueva_pos:
+            try:
+                # Mueve a Bomberman a la nueva posición
+                self.model.grid.move_agent(self, nueva_pos)
+                self.pos = nueva_pos  # Actualiza la posición de Bomberman
+                print(f"Bomberman se ha movido a {self.pos} con una heurística de {mejor_vecino[0]}")
+            except ValueError as e:
+                print(f"Error moviendo a Bomberman a {nueva_pos}: {e}")
+        else:
+            print(f"Bomberman ya está en la posición {self.pos}, no es necesario moverlo.")

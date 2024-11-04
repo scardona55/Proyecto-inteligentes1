@@ -138,7 +138,10 @@ class MiModelo(Model):
                     agente.stepUniformCost() 
                 elif self.algoritmo == 'Bean':
                     agente.stepBeamSearch()
+                elif self.algoritmo == 'Hill':
+                    agente.stepHillClimbing()
             elif isinstance(agente, Globo):
                 agente.mover_aleatorio()
             else:
                 agente.step()
+
