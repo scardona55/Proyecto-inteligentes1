@@ -1,1 +1,10 @@
-hola mundo; ensayo carga archivo
+C,R,M,C,C,C,M,C,R,C
+C,M,C,R,C,M,C,C,M,C
+R,C,M,M,C,R,C,M,C,S
+C,M,R,C,C,M,C,C,C,C
+C,C,R,M,C,C,C,M,R,C
+M,R,C,M,C,C,M,C,C,M
+C,C,C,C,C,M,C,C,C,C
+C,M,C,C,M,C,C,R,M,C
+R,C,C,M,C,C,M,C,R,C
+C_b,C,C,R,C,C,M,C,C_G,C

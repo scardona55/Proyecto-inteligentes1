@@ -280,34 +280,34 @@ class Bomberman(Agent):
             return
 
     def stepHillClimbing(self):
-        """Algoritmo de Hill Climbing con retroceso que mueve a Bomberman paso a paso."""
+        """Algoritmo de Hill Climbing por niveles y marcas. Explora cada rama por niveles y regresa al nivel principal si no encuentra solución."""
 
-        # Marca la posición actual como visitada y mueve a Bomberman
+        # Inicializamos la estructura de niveles y marcas
+        if not hasattr(self, 'niveles'):
+            self.niveles = {0: [self.pos]}  # Nivel 0 es el nodo origen
+            self.marca_actual = 1  # Primera marca
+            self.nivel_actual = 0  # Comienza en el nivel 0
+            self.visitados = set()  # Conjunto para guardar posiciones visitadas
+
+        # Marcamos la posición actual como visitada
         self.visitados.add(self.pos)
         self.marcar_casilla(self.pos)
 
-        # Verifica si Bomberman ha llegado a la salida
+        # Verificamos si Bomberman ha encontrado la salida
         if any(isinstance(agente, Salida) for agente in self.model.grid.get_cell_list_contents(self.pos)):
             print("¡Bomberman ha llegado a la salida!")
             self.model.running = False
             return
 
-        # Checa interacciones con enemigos
-        if self.interaccion_con_globo(self.pos):
-            if self.vida <= 0:
-                return
-
-        # Genera posiciones adyacentes y calcula sus heurísticas
+        # Genera las posiciones adyacentes y calcula sus heurísticas
         movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         vecinos = []
         for movimiento in movimientos:
             nueva_posicion = (self.pos[0] + movimiento[0], self.pos[1] + movimiento[1])
 
-            # Asegúrate de que la posición es válida y no visitada
+            # Aseguramos que la posición es válida, no visitada, y no tiene obstáculos
             if self.model.grid.out_of_bounds(nueva_posicion) or nueva_posicion in self.visitados:
                 continue
-
-            # Verifica que no haya obstáculos en la nueva posición
             contenido_celda = self.model.grid.get_cell_list_contents(nueva_posicion)
             if any(isinstance(agente, (MuroMetal, RocaDestructible)) for agente in contenido_celda):
                 continue
@@ -316,29 +316,36 @@ class Bomberman(Agent):
             heuristic_score = self.heuristic(nueva_posicion)
             vecinos.append((heuristic_score, nueva_posicion))
 
-        # Si no hay vecinos, retrocede al último estado (backtracking)
-        if not vecinos:
-            if self.camino:  # Camino guarda el historial de posiciones visitadas para retroceder
-                self.pos = self.camino.pop()  # Retrocede a la posición anterior
-                print("Retrocediendo a la posición:", self.pos)
-            return
+        # Si hay vecinos, marcamos el siguiente nivel y agregamos los vecinos al nuevo nivel
+        if vecinos:
+            vecinos.sort(key=lambda x: x[0])  # Ordena los vecinos por la heurística
+            mejor_vecino = vecinos[0]
+            
+            # Actualizamos el nivel actual y la marca actual
+            self.nivel_actual += 1
+            self.niveles[self.nivel_actual] = [vecino[1] for vecino in vecinos]
+            self.marca_actual += 1
 
-        # Ordena los vecinos por heurística y elige el mejor
-        vecinos.sort(key=lambda x: x[0])
-        mejor_vecino = vecinos[0]
+            # Avanza a la mejor opción en este nivel
+            nueva_pos = mejor_vecino[1]
+            self.model.grid.move_agent(self, nueva_pos)
+            self.pos = nueva_pos
+            print(f"Bomberman se ha movido a {self.pos} en el nivel {self.nivel_actual} con marca {self.marca_actual}")
 
-        # Guarda la posición actual en el historial antes de moverse
-        self.camino.append(self.pos)
-        nueva_pos = mejor_vecino[1]
-
-        # Verificación antes de mover a Bomberman
-        if self.pos != nueva_pos:
-            try:
-                # Mueve a Bomberman a la nueva posición
-                self.model.grid.move_agent(self, nueva_pos)
-                self.pos = nueva_pos  # Actualiza la posición de Bomberman
-                print(f"Bomberman se ha movido a {self.pos} con una heurística de {mejor_vecino[0]}")
-            except ValueError as e:
-                print(f"Error moviendo a Bomberman a {nueva_pos}: {e}")
+        # Si no hay vecinos válidos, retrocedemos al nivel principal anterior
         else:
-            print(f"Bomberman ya está en la posición {self.pos}, no es necesario moverlo.")
+            while self.nivel_actual > 0:
+                self.nivel_actual -= 1
+                if self.niveles[self.nivel_actual]:
+                    # Recuperamos la posición de la marca anterior no explorada
+                    siguiente_posicion = self.niveles[self.nivel_actual].pop(0)
+                    if siguiente_posicion != self.pos:
+                        try:
+                            self.model.grid.move_agent(self, siguiente_posicion)
+                            self.pos = siguiente_posicion
+                            print(f"Retrocediendo a la posición {self.pos} en el nivel {self.nivel_actual}")
+                            break
+                        except ValueError as e:
+                            print(f"Error al mover a Bomberman a {siguiente_posicion}: {e}")
+            else:
+                print("No hay más posiciones válidas para explorar.")
