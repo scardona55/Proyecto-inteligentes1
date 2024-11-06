@@ -9,11 +9,11 @@ from .bomberman import Bomberman
 class Bomba(Agent):
     def __init__(self, unique_id, model, poder_destruccion=1):
         super().__init__(unique_id, model)
-        self.poder_destruccion = poder_destruccion  # Poder de destrucción de la bomba en número de casillas
+        self.poder_destruccion = poder_destruccion
         self.explotada = False
     
     def detonar(self):
-        """Método para detonar la bomba y afectar los elementos en su rango de destrucción."""
+        """Método para detonar la bomba y afectar los elementos en rango"""
         if self.explotada:
             return  # Si ya explotó, no hace nada
         

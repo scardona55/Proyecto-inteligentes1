@@ -7,6 +7,7 @@ from .muro_metal import MuroMetal
 from .roca_destructible import RocaDestructible
 from .salida import Salida
 from .globo import Globo  # Asegúrate de tener la clase Globo definida
+from collections import defaultdict
 from heapq import heappop, heappush
 
 class Bomberman(Agent):
@@ -363,6 +364,7 @@ class Bomberman(Agent):
             self.g_score = {}    # Costo actual desde el inicio hasta n
             self.f_score = {}    # Costo estimado total
             self.open_set = []   # Lista de nodos por explorar
+            self.contador_nums = []  # Lista para almacenar todos los valores de tentative_g_score
             
             # Inicializar valores para la posición inicial
             start = self.pos
@@ -378,6 +380,15 @@ class Bomberman(Agent):
             if current == self.model.salida_pos:
                 print("¡Bomberman ha llegado a la salida!")
                 self.model.running = False
+                
+                # Contar la frecuencia de cada valor en contador_nums
+                frequency_count = defaultdict(int)
+                for value in self.contador_nums:
+                    frequency_count[value] += 1
+                
+                # Imprimir las frecuencias
+                for value, count in frequency_count.items():
+                    print(f"{value} - {count}")
                 return
                 
             # Explorar vecinos
@@ -396,6 +407,7 @@ class Bomberman(Agent):
                     
                 # Calcular nuevo g_score
                 tentative_g_score = self.g_score[current] + 10  # Costo de movimiento = 10
+                self.contador_nums.append(tentative_g_score)  # Guardar el valor en la lista
                 
                 # Si encontramos un mejor camino
                 if nueva_posicion not in self.g_score or tentative_g_score < self.g_score[nueva_posicion]:
@@ -407,7 +419,7 @@ class Bomberman(Agent):
                     # Agregar a open_set si no está ya
                     if not any(pos == nueva_posicion for score, pos in self.open_set):
                         heapq.heappush(self.open_set, (self.f_score[nueva_posicion], nueva_posicion))
-                        
+                    
             # Mover al agente
             if current != self.pos:
                 self.model.grid.move_agent(self, current)
@@ -417,7 +429,7 @@ class Bomberman(Agent):
                 if self.interaccion_con_globo(current):
                     if self.vida <= 0:
                         return
-                        
+                    
         # Si no hay camino posible
         else:
             print("No se encontró un camino hacia la salida")
