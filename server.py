@@ -56,7 +56,7 @@ altoM = 10
 anchoM = 10
 
 # Seleccionar el algoritmo a usar ('random', 'profundidad', 'amplitud', 'costouniforme'o 'Bean' o Hill)
-algoritmo = 'Hill'
+algoritmo = 'A*'
 
 # Definir cantidad de enemigos Globo a generar aleatoriamente en el mapa
 cantidad_globos = 3

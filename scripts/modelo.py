@@ -140,6 +140,8 @@ class MiModelo(Model):
                     agente.stepBeamSearch()
                 elif self.algoritmo == 'Hill':
                     agente.stepHillClimbing()
+                elif self.algoritmo == 'A*':
+                    agente.Aestrella()
             elif isinstance(agente, Globo):
                 agente.mover_aleatorio()
             else:
