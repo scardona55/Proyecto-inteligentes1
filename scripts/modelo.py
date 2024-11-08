@@ -147,3 +147,8 @@ class MiModelo(Model):
             else:
                 agente.step()
 
+    def verificar_destruccion_roca(self):
+        for agent in self.schedule.agents:
+            if isinstance(agent, RocaDestructible) and agent.pos in self.posiciones_afectadas_por_bomba:
+                self.grid.remove_agent(agent)
+                self.schedule.remove(agent)

@@ -4,19 +4,29 @@ from .muro_metal import MuroMetal
 from .roca_destructible import RocaDestructible
 from .salida import Salida
 from .globo import Globo
-from .bomberman import Bomberman
 
 class Bomba(Agent):
     def __init__(self, unique_id, model, poder_destruccion=1):
         super().__init__(unique_id, model)
         self.poder_destruccion = poder_destruccion
         self.explotada = False
-    
+        self.tiempo_para_explotar = 3  # Contador de tiempo antes de explotar
+
+    def step(self):
+        """Lógica que maneja el tiempo antes de explotar."""
+        if self.tiempo_para_explotar > 0:
+            self.tiempo_para_explotar -= 1
+        else:
+            self.detonar()
+
     def detonar(self):
-        """Método para detonar la bomba y afectar los elementos en rango"""
+        """Método para detonar la bomba y afectar los elementos en rango."""
         if self.explotada:
             return  # Si ya explotó, no hace nada
-        
+
+        # Importación de Bomberman dentro del método para evitar circularidad
+        from .bomberman import Bomberman
+
         posiciones_afectadas = self.calcular_posiciones_afectadas()
         for posicion in posiciones_afectadas:
             contenido_celda = self.model.grid.get_cell_list_contents(posicion)
@@ -29,7 +39,7 @@ class Bomba(Agent):
                 
                 # Interacción con Bomberman
                 if isinstance(agente, Bomberman):
-                    agente.vida -= 1
+                    agente.recibir_daño(1)
                     print(f"Bomberman en {posicion} fue alcanzado y pierde una vida. Vida restante: {agente.vida}")
                     if agente.vida <= 0:
                         print("¡Bomberman ha sido derrotado!")
@@ -49,7 +59,7 @@ class Bomba(Agent):
             posiciones_afectadas.append((x - i, y))   # Arriba
             posiciones_afectadas.append((x, y + i))   # Derecha
             posiciones_afectadas.append((x, y - i))   # Izquierda
-        
-        # Filtra posiciones fuera del tablero
+
+        # Filtrar posiciones fuera del tablero
         posiciones_afectadas = [pos for pos in posiciones_afectadas if not self.model.grid.out_of_bounds(pos)]
         return posiciones_afectadas

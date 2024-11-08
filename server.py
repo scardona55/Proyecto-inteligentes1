@@ -3,6 +3,7 @@ from mesa.visualization.ModularVisualization import ModularServer
 from scripts.modelo import MiModelo
 from scripts.agentes import Bomberman, MuroMetal, RocaDestructible, Salida, Camino, Globo
 from scripts.lecturaArc import cargar_archivo, validar_mapa
+from scripts.agentes.bomba import Bomba  
 
 # Visualización de los agentes
 def agent_portrayal(agent):
@@ -21,6 +22,10 @@ def agent_portrayal(agent):
         portrayal["Layer"] = 1
     elif isinstance(agent, Salida):
         portrayal["Shape"] = "imagenes/salida.jpeg"
+        portrayal["scale"] = 1
+        portrayal["Layer"] = 1
+    elif  isinstance(agent, Bomba):
+        portrayal["Shape"] = "imagenes/bomba.jpeg"
         portrayal["scale"] = 1
         portrayal["Layer"] = 1
     elif isinstance(agent, Camino):
