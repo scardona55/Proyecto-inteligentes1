@@ -22,6 +22,7 @@ class Bomberman(Agent):
         self.vida = vida  # Nueva propiedad de vida
         self.beam_width = beam_width
         self.camino = []
+        self.listica=[]
 
     def seleccionar_algoritmo(self):
         if self.algoritmo == 'random':
@@ -176,42 +177,46 @@ class Bomberman(Agent):
                                 return
     
     def stepBeamSearch(self):
-        """Algoritmo de Beam Search que mueve a Bomberman paso a paso."""
-        # Si la cola de prioridad está vacía, inicializa la búsqueda
+        """Algoritmo de Beam Search modificado con retroceso completo al primer nivel, 
+        expansión de los n mejores nodos de menor coste, y búsqueda de nodos no visitados en niveles anteriores."""
+        
+        # Inicializar el nodo inicial en la cola de prioridad y la estructura de niveles
         if not self.priorityqueue:
             initial_state = ([self.pos], self.heuristic(self.pos))  # [path, costo]
             heapq.heappush(self.priorityqueue, initial_state)
+            self.level_nodes = [[]]  # Estructura para almacenar nodos por nivel
 
-        # Realiza un único movimiento en cada paso
-        if self.priorityqueue:
-            # Limitar la búsqueda al ancho del haz
-            current_level = []
-            for _ in range(min(self.beam_width, len(self.priorityqueue))):
-                path, _ = heapq.heappop(self.priorityqueue)
-                posicion_actual = path[-1]  # Última posición en el camino
+        while self.priorityqueue:
+            # Seleccionar los n mejores nodos de menor coste y expandir cada uno de ellos
+            current_level = heapq.nsmallest(self.beam_width, self.priorityqueue)
+            self.priorityqueue.clear()  # Limpiar la cola para agregar los nuevos nodos generados
+            
+            for path, _ in current_level:
+                posicion_actual = path[-1]
 
-                # Chequear si Bomberman llegó a la salida
+                # Verificar si Bomberman ha alcanzado la salida
                 if any(isinstance(agente, Salida) for agente in self.model.grid.get_cell_list_contents(posicion_actual)):
                     print("¡Bomberman ha llegado a la salida!")
                     self.model.running = False
                     return
 
-                # Añadir la posición actual a visitados y mover Bomberman
+                # Agregar la posición actual a la lista de visitados y mover Bomberman a esa posición
                 self.visitados.add(posicion_actual)
                 self.model.grid.move_agent(self, posicion_actual)
-                self.marcar_casilla(posicion_actual)
+                self.marcar_casilla(posicion_actual)  # Visualizar el movimiento
 
-                # Evaluar interacciones con enemigos
+                # Evaluar interacciones con enemigos en la posición actual
                 if self.interaccion_con_globo(posicion_actual):
                     if self.vida <= 0:
                         return
 
-                # Generar posiciones adyacentes y añadirlas al nivel actual de búsqueda
+                # Generar hijos (movimientos posibles) y agregar a la cola de prioridad
                 movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]
+                next_level = []
                 for movimiento in movimientos:
                     nueva_posicion = (posicion_actual[0] + movimiento[0], posicion_actual[1] + movimiento[1])
 
-                    # Verificar si la posición es válida
+                    # Verificar si la posición es válida y no visitada
                     if self.model.grid.out_of_bounds(nueva_posicion) or nueva_posicion in self.visitados:
                         continue
 
@@ -223,15 +228,35 @@ class Bomberman(Agent):
                     # Calcular heurística y añadir el nuevo camino extendido
                     new_path = path + [nueva_posicion]
                     heuristic_score = self.heuristic(nueva_posicion)
-                    heapq.heappush(current_level, (new_path, heuristic_score))
+                    heapq.heappush(next_level, (new_path, heuristic_score))
 
-            # Retener solo los mejores nodos según el ancho del haz
-            self.priorityqueue = heapq.nsmallest(self.beam_width, current_level)
+                # Agregar los nuevos nodos generados al siguiente nivel
+                self.priorityqueue.extend(next_level)
 
+            # Seleccionar nuevamente los n mejores nodos de menor coste para el próximo ciclo
+            self.priorityqueue = heapq.nsmallest(self.beam_width, self.priorityqueue)
+            self.level_nodes.append(next_level)
+
+            # Si no quedan más nodos en el nivel actual, retroceder y buscar nodos no visitados
+            if not self.priorityqueue:
+                for level in self.level_nodes:
+                    unvisited_nodes = [(path, score) for path, score in level if path[-1] not in self.visitados]
+                    if unvisited_nodes:
+                        self.priorityqueue = heapq.nsmallest(self.beam_width, unvisited_nodes)
+                        break
+                else:
+                    # Si no hay más nodos no visitados, terminar la búsqueda
+                    print("No se ha encontrado la salida y no hay más nodos por visitar.")
+                    self.model.running = False
+                    return
+
+
+    
     def heuristic(self, posicion):
         """Función heurística para estimar la distancia a la salida."""
         salida_pos = self.model.salida_pos
         return abs(posicion[0] - salida_pos[0]) + abs(posicion[1] - salida_pos[1])
+
 
     def stepUniformCost(self):
         if not self.priorityqueue:
@@ -285,119 +310,155 @@ class Bomberman(Agent):
             return
 
     def stepHillClimbing(self):
-        """Algoritmo de Hill Climbing por niveles y marcas. Explora cada rama por niveles y regresa al nivel principal si no encuentra solución."""
-
-        # Inicializamos la estructura de niveles y marcas
+        """Algoritmo de Hill Climbing por decisiones, mostrando paso a paso el recorrido de Bomberman, avanzando una casilla por cada llamada."""
+        
+        # Inicializamos las estructuras solo una vez
         if not hasattr(self, 'niveles'):
-            self.niveles = {0: [self.pos]}  # Nivel 0 es el nodo origen
-            self.marca_actual = 1  # Primera marca
-            self.nivel_actual = 0  # Comienza en el nivel 0
+            self.niveles = {}  # Diccionario para almacenar nodos de decisiones en cada nivel
             self.visitados = set()  # Conjunto para guardar posiciones visitadas
+            self.cola_prioridad = []  # Cola de prioridad para almacenar nodos ordenados por heurística
+            self.nivel_inicial = 0  # Nivel inicial con los hijos del nodo de inicio
+            heapq.heappush(self.cola_prioridad, (self.heuristic(self.pos), self.pos))  # Añadimos la posición inicial
+            self.niveles[self.nivel_inicial] = []  # Lista de decisiones del primer nivel
 
-        # Marcamos la posición actual como visitada
-        self.visitados.add(self.pos)
-        self.marcar_casilla(self.pos)
+        # Si la cola de prioridad está vacía, significa que ya no hay más nodos para explorar
+        if not self.cola_prioridad:
+            print("No hay más nodos por visitar. Terminando búsqueda.")
+            self.model.running = False
+            return
+
+        # Obtenemos el nodo de menor costo de la cola de prioridad
+        _, nodo_actual = heapq.heappop(self.cola_prioridad)
+
+        # Si el nodo actual ya fue visitado, continuamos al siguiente paso
+        if nodo_actual in self.visitados:
+            return
+
+        # Marcamos el nodo actual como visitado y lo expandimos
+        self.visitados.add(nodo_actual)
+        self.marcar_casilla(nodo_actual)
+        self.model.grid.move_agent(self, nodo_actual)  # Mueve visualmente a Bomberman
+        self.pos = nodo_actual  # Actualizamos la posición de Bomberman
+
+        print(f"Expandiendo nodo en posición {nodo_actual}")  # Mostrar paso a paso
 
         # Verificamos si Bomberman ha encontrado la salida
-        if any(isinstance(agente, Salida) for agente in self.model.grid.get_cell_list_contents(self.pos)):
+        if any(isinstance(agente, Salida) for agente in self.model.grid.get_cell_list_contents(nodo_actual)):
             print("¡Bomberman ha llegado a la salida!")
             self.model.running = False
             return
 
-        # Genera las posiciones adyacentes y calcula sus heurísticas
+        # Genera las posiciones adyacentes (hijos del nodo actual)
         movimientos = [(0, -1), (-1, 0), (0, 1), (1, 0)]
-        vecinos = []
+        hijos = []
         for movimiento in movimientos:
-            nueva_posicion = (self.pos[0] + movimiento[0], self.pos[1] + movimiento[1])
+            nueva_posicion = (nodo_actual[0] + movimiento[0], nodo_actual[1] + movimiento[1])
 
-            # Aseguramos que la posición es válida, no visitada, y no tiene obstáculos
+            # Validamos si la posición es válida, no visitada y sin obstáculos
             if self.model.grid.out_of_bounds(nueva_posicion) or nueva_posicion in self.visitados:
                 continue
             contenido_celda = self.model.grid.get_cell_list_contents(nueva_posicion)
             if any(isinstance(agente, (MuroMetal, RocaDestructible)) for agente in contenido_celda):
                 continue
 
-            # Calcular la heurística y añadir la posición a la lista de vecinos
+            # Calculamos la heurística y añadimos el nodo a la lista de hijos y a la cola de prioridad
             heuristic_score = self.heuristic(nueva_posicion)
-            vecinos.append((heuristic_score, nueva_posicion))
+            hijos.append((heuristic_score, nueva_posicion))
+            heapq.heappush(self.cola_prioridad, (heuristic_score, nueva_posicion))
 
-        # Si hay vecinos, marcamos el siguiente nivel y agregamos los vecinos al nuevo nivel
-        if vecinos:
-            vecinos.sort(key=lambda x: x[0])  # Ordena los vecinos por la heurística
-            mejor_vecino = vecinos[0]
-            
-            # Actualizamos el nivel actual y la marca actual
-            self.nivel_actual += 1
-            self.niveles[self.nivel_actual] = [vecino[1] for vecino in vecinos]
-            self.marca_actual += 1
-
-            # Avanza a la mejor opción en este nivel
-            nueva_pos = mejor_vecino[1]
-            self.model.grid.move_agent(self, nueva_pos)
-            self.pos = nueva_pos
-            print(f"Bomberman se ha movido a {self.pos} en el nivel {self.nivel_actual} con marca {self.marca_actual}")
-
-        # Si no hay vecinos válidos, retrocedemos al nivel principal anterior
+        # Si hay hijos, añadimos este conjunto al siguiente nivel
+        if hijos:
+            hijos.sort(key=lambda x: x[0])  # Ordenamos hijos por costo heurístico
+            self.niveles[self.nivel_inicial + 1] = hijos  # Guardamos los hijos en el siguiente nivel de decisión
+            self.nivel_inicial += 1  # Pasamos al siguiente nivel
         else:
-            while self.nivel_actual > 0:
-                self.nivel_actual -= 1
-                if self.niveles[self.nivel_actual]:
-                    # Recuperamos la posición de la marca anterior no explorada
-                    siguiente_posicion = self.niveles[self.nivel_actual].pop(0)
-                    if siguiente_posicion != self.pos:
-                        try:
-                            self.model.grid.move_agent(self, siguiente_posicion)
-                            self.pos = siguiente_posicion
-                            print(f"Retrocediendo a la posición {self.pos} en el nivel {self.nivel_actual}")
+            # Si es un nodo hoja, intentamos regresar al primer nivel y explorar en secuencia cada nivel
+            for nivel in range(len(self.niveles)):
+                if nivel in self.niveles and self.niveles[nivel]:  # Si hay nodos no visitados en el nivel
+                    while self.niveles[nivel]:
+                        _, siguiente_posicion = self.niveles[nivel].pop(0)  # Seleccionamos el siguiente no visitado
+                        if siguiente_posicion not in self.visitados:
+                            heapq.heappush(self.cola_prioridad, (self.heuristic(siguiente_posicion), siguiente_posicion))
+                            print(f"Retrocediendo a la decisión del nivel {nivel}, nodo {siguiente_posicion}")
                             break
-                        except ValueError as e:
-                            print(f"Error al mover a Bomberman a {siguiente_posicion}: {e}")
+                    if self.cola_prioridad:
+                        break
             else:
-                print("No hay más posiciones válidas para explorar.")
+                # Si ya no hay nodos en ningún nivel
+                print("No hay más nodos por visitar. Terminando búsqueda.")
+                self.model.running = False
+                return
 
 
+    
     def Aestrella(self):
-        # A* Search
+        # Inicialización de variables
         if not hasattr(self, 'came_from'):
             self.came_from = {}  # Diccionario para reconstruir el camino
-            self.g_score = {}    # Costo actual desde el inicio hasta n
-            self.f_score = {}    # Costo estimado total
-            self.open_set = []   # Lista de nodos por explorar
+            self.g_score = {}     # Costo actual desde el inicio hasta cada nodo
+            self.f_score = {}     # Costo estimado total hasta la meta
+            self.open_set = []    # Lista de nodos por explorar (usada como cola de prioridad)
             
             # Inicializar valores para la posición inicial
             start = self.pos
             self.g_score[start] = 0
             self.f_score[start] = self.heuristic(start)
             heapq.heappush(self.open_set, (self.f_score[start], start))
+            heapq.heappush(self.listica, (self.f_score[start], start))
             
+        """ print(f"Diccionario_came_from:{self.came_from}")
+        print(f"Costo actual desde el inicio hasta cada nodo:{self.g_score}")
+        print(f"Costo estimado total hasta la meta:{self.f_score}")
+        print(f"Lista de nodos por explorar (usada como cola de prioridad):{self.open_set}")
+         """
+        # Verificar si todavía hay nodos por expandir en open_set
         if self.open_set:
-            # Obtener el nodo con menor f_score
+            # Expandir el nodo con el menor f_score
             current = heapq.heappop(self.open_set)[1]
             
-            # Si llegamos a la salida
+            # Si el nodo actual es la salida, terminamos
             if current == self.model.salida_pos:
                 print("¡Bomberman ha llegado a la salida!")
+                print(f"esta es la listica:{self.listica}")
+                for listota in self.listica:
+                    contador=0
+                    lista_mortal=[]
+                    for listota2 in self.listica:
+                     if listota2[0]== listota[0]:
+                         contador=contador+1
+                         lista_mortal.append(listota2[1])
+                    print(f"valor:{listota[0]}, veces:{contador}, lista:{lista_mortal}")
                 self.model.running = False
                 return
-                
-            # Explorar vecinos
+            
+            # Animación solo cuando se expande el nodo `current`
+            if current != self.pos:
+                self.model.grid.move_agent(self, current)
+                self.marcar_casilla(current)
+
+                # Verificar interacción con globo
+                if self.interaccion_con_globo(current):
+                    if self.vida <= 0:
+                        return
+            
+            # Explorar los vecinos de `current`
             movimientos = [(-1, 0), (0, 1), (1, 0), (0, -1)]
             for movimiento in movimientos:
                 nueva_posicion = (current[0] + movimiento[0], current[1] + movimiento[1])
                 
-                # Verificar si la posición es válida
+                # Verificar si la nueva posición es válida (dentro de los límites del mapa)
                 if self.model.grid.out_of_bounds(nueva_posicion):
                     continue
-                    
+                
                 # Verificar si hay obstáculos
                 if any(isinstance(agente, (MuroMetal, RocaDestructible)) 
                     for agente in self.model.grid.get_cell_list_contents(nueva_posicion)):
                     continue
-                    
-                # Calcular nuevo g_score
-                tentative_g_score = self.g_score[current] + 10  # Costo de movimiento = 10
                 
-                # Si encontramos un mejor camino
+                # Calcular el g_score tentativo
+                tentative_g_score = self.g_score[current]  # Suponemos un costo de movimiento de 10
+                
+                # Si encontramos un mejor camino hacia nueva_posicion
                 if nueva_posicion not in self.g_score or tentative_g_score < self.g_score[nueva_posicion]:
                     # Actualizar el camino y los scores
                     self.came_from[nueva_posicion] = current
@@ -407,18 +468,9 @@ class Bomberman(Agent):
                     # Agregar a open_set si no está ya
                     if not any(pos == nueva_posicion for score, pos in self.open_set):
                         heapq.heappush(self.open_set, (self.f_score[nueva_posicion], nueva_posicion))
-                        
-            # Mover al agente
-            if current != self.pos:
-                self.model.grid.move_agent(self, current)
-                self.marcar_casilla(current)
-                
-                # Verificar interacción con globo
-                if self.interaccion_con_globo(current):
-                    if self.vida <= 0:
-                        return
-                        
-        # Si no hay camino posible
+                        heapq.heappush(self.listica, (self.f_score[nueva_posicion], nueva_posicion))
+        
+        # Si `open_set` está vacío y no encontramos la salida
         else:
             print("No se encontró un camino hacia la salida")
             self.model.running = False
