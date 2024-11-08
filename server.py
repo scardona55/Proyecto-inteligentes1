@@ -52,8 +52,8 @@ if ruta_archivo:
 else:
     mapa = None  # Si no se carga archivo, se usará la generación aleatoria en el modelo
 
-altoM = 5
-anchoM = 7
+altoM = 4
+anchoM = 5
 
 # Seleccionar el algoritmo a usar ('random', 'profundidad', 'amplitud', 'costouniforme'o 'Bean' o Hill o A*)
 algoritmo = 'A*'
