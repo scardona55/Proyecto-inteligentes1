@@ -29,8 +29,6 @@ class Bomberman(Agent):
         self.bombs = []  # Lista de bombas colocadas
         self.bomb_placed = False  # Indica si se colocó una bomba
         
-
-
     def seleccionar_algoritmo(self):
         if self.algoritmo == 'random':
             self.step2()
@@ -79,12 +77,6 @@ class Bomberman(Agent):
                 self.recibir_daño(1)
                 return True
         return False
-    
-    def colocar_bomba(self, posicion):
-        bomba = Bomba(self.model.next_id(), self.model)
-        self.model.grid.place_agent(bomba, posicion)
-        self.model.schedule.add(bomba)
-        print(f"Bomberman colocó una bomba en {posicion}.")
 
     def step2(self):
         #Movimientos random
@@ -190,13 +182,12 @@ class Bomberman(Agent):
                                 return
     
     def stepBeamSearch(self):
-        """Beam Search ajustado con colocación de bombas y destrucción de RocasDestructibles."""
+        """Beam Search con colocación de bombas y destrucción de rocas destructibles."""
         if not self.priorityqueue:
-            # Inicializar el nodo inicial en la cola de prioridad
-            initial_state = (self.heuristic(self.pos), [self.pos])  # [heuristic_score, path]
+            # Inicializar el nodo inicial
+            initial_state = (self.heuristic(self.pos), [self.pos])
             heapq.heappush(self.priorityqueue, initial_state)
 
-        # Obtener el siguiente nodo de la cola
         if self.priorityqueue:
             _, path = heapq.heappop(self.priorityqueue)
             posicion_actual = path[-1]
@@ -206,7 +197,7 @@ class Bomberman(Agent):
             self.visitados.add(posicion_actual)
             self.marcar_casilla(posicion_actual)
 
-            # Verificar si Bomberman ha llegado a la salida
+            # Verificar si Bomberman llegó a la salida
             if any(isinstance(agente, Salida) for agente in self.model.grid.get_cell_list_contents(posicion_actual)):
                 print("¡Bomberman ha llegado a la salida!")
                 self.model.running = False
@@ -219,28 +210,25 @@ class Bomberman(Agent):
                 if self.model.grid.out_of_bounds(nueva_posicion) or nueva_posicion in self.visitados:
                     continue
 
-                # Detectar y manejar RocasDestructibles
                 contenido_celda = self.model.grid.get_cell_list_contents(nueva_posicion)
                 if any(isinstance(agente, RocaDestructible) for agente in contenido_celda):
-                    if not self.bomb_placed:  # Colocar bomba si aún no se ha hecho
+                    if not self.bomb_placed:
                         self.colocar_bomba(posicion_actual)
                         self.bomb_placed = True
                         print(f"Bomba colocada en {posicion_actual}. Apuntando a {nueva_posicion}.")
-                        return  # Esperar la próxima iteración
+                        return
 
-                # Evitar obstáculos no destructibles
                 if any(isinstance(agente, MuroMetal) for agente in contenido_celda):
                     continue
 
-                # Calcular heurística y agregar a la cola
+                # Agregar nuevas posiciones a explorar
                 nuevo_camino = path + [nueva_posicion]
                 heuristic_score = self.heuristic(nueva_posicion)
                 heapq.heappush(self.priorityqueue, (heuristic_score, nuevo_camino))
 
-            # Mantener los n mejores nodos en la cola (Beam Search)
+            # Mantener los n mejores nodos en la cola
             self.priorityqueue = heapq.nsmallest(self.beam_width, self.priorityqueue)
 
-        # Si no hay más nodos para explorar, finalizar el juego
         if not self.priorityqueue:
             print("No se encontró una salida. Fin del juego.")
             self.model.running = False
@@ -269,13 +257,18 @@ class Bomberman(Agent):
 
         return safe_positions
 
-
-
     def heuristic(self, posicion):
         """Función heurística para estimar la distancia a la salida."""
         salida_pos = self.model.salida_pos
         return abs(posicion[0] - salida_pos[0]) + abs(posicion[1] - salida_pos[1])
-
+    
+    def colocar_bomba(self, posicion):
+        """Coloca una bomba en la posición actual."""
+        bomba = Bomba(self.model.next_id(), self.model, posicion)
+        self.model.grid.place_agent(bomba, posicion)
+        self.bombs.append(bomba)
+        self.model.schedule.add(bomba)
+        self.bomb_placed = True
 
     def stepUniformCost(self):
         if not self.priorityqueue:
@@ -327,7 +320,6 @@ class Bomberman(Agent):
                     heapq.heappush(self.priorityqueue, (nuevo_costo, nueva_posicion))
 
             return
-
 
     def stepHillClimbing(self):
         """Algoritmo de Hill Climbing por decisiones, mostrando paso a paso el recorrido de Bomberman, avanzando una casilla por cada llamada."""

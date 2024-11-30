@@ -1,36 +1,67 @@
 from mesa import Agent
-from .camino import Camino
-from .muro_metal import MuroMetal
 from .roca_destructible import RocaDestructible
 
 class Bomba(Agent):
-    def __init__(self, unique_id, model):
+    # Constante para definir el rango de explosión
+    RANGO_EXPLOSION = 1  # Puedes ajustar el rango según sea necesario
+
+    def __init__(self, unique_id, model, pos, tiempo_explosion=3):
+        """
+        Constructor de la bomba.
+
+        Args:
+            unique_id (int): Identificador único del agente.
+            model (Model): Instancia del modelo.
+            pos (tuple): Posición inicial de la bomba.
+            tiempo_explosion (int): Tiempo en pasos antes de explotar.
+        """
         super().__init__(unique_id, model)
-        self.timer = 3  # Tiempo hasta explotar
+        self.pos = pos
+        self.tiempo_explosion = tiempo_explosion
 
     def step(self):
-        self.timer -= 1
-        if self.timer <= 0:
-            self.explode()
+        """
+        Lógica del paso de la bomba.
+        Reduce el temporizador y detona cuando llega a 0.
+        """
+        self.tiempo_explosion -= 1
+        if self.tiempo_explosion <= 0:
+            self.explotar()
 
-    def explode(self):
-        # Obtener vecinos y destruir objetos
-        neighbors = self.model.grid.get_neighborhood(self.pos, moore=False, include_center=True)
-        for neighbor in neighbors:
-            cell_contents = self.model.grid.get_cell_list_contents([neighbor])
-            for obj in cell_contents:
-                if isinstance(obj, (RocaDestructible, Bomba)):
-                    self.model.grid.remove_agent(obj)
-                    print(f"Objeto destruido en {neighbor}: {type(obj).__name__}")
-                    
-                    # Si el objeto es una roca destructible, colocar un camino en su lugar
-                    if isinstance(obj, RocaDestructible):
-                        camino = Camino(self.model.next_id(), self.model)
-                        self.model.schedule.add(camino)
-                        self.model.grid.place_agent(camino, neighbor)
+    def explotar(self):
+        """
+        Lógica de explosión de la bomba.
+        Destruye los objetos afectados dentro del rango de explosión.
+        """
+        x, y = self.pos
+        # Direcciones para explorar en cruz desde la posición actual
+        direcciones = [
+            (0, 1),   # Arriba
+            (0, -1),  # Abajo
+            (1, 0),   # Derecha
+            (-1, 0)   # Izquierda
+        ]
 
-        # Remover la bomba después de la explosión
+        # Destruir objetos en cada dirección hasta el rango especificado
+        for dx, dy in direcciones:
+            for r in range(1, self.RANGO_EXPLOSION + 1):
+                nueva_pos = (x + r * dx, y + r * dy)
+
+                # Verificar que la posición no esté fuera de los límites
+                if not self.model.grid.out_of_bounds(nueva_pos):
+                    contenido = self.model.grid.get_cell_list_contents(nueva_pos)
+                    for obj in contenido:
+                        if isinstance(obj, RocaDestructible):
+                            self.model.grid.remove_agent(obj)
+                            self.model.schedule.remove(obj)
+
+        # Explosión también afecta la celda donde está la bomba
+        contenido_central = self.model.grid.get_cell_list_contents(self.pos)
+        for obj in contenido_central:
+            if isinstance(obj, RocaDestructible):
+                self.model.grid.remove_agent(obj)
+                self.model.schedule.remove(obj)
+
+        # Finalmente, elimina la bomba del modelo
         self.model.grid.remove_agent(self)
-        print(f"Bomba explotó en {self.pos}")
-
-
+        self.model.schedule.remove(self)

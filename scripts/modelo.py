@@ -1,5 +1,5 @@
 from mesa import Model
-from mesa.time import RandomActivation
+from mesa.time import SimultaneousActivation
 from mesa.space import MultiGrid
 from .agentes import Bomberman, MuroMetal, RocaDestructible, Salida, Camino, Globo
 import random
@@ -8,7 +8,7 @@ class MiModelo(Model):
     def __init__(self, mapa=None, ancho=10, alto=10, algoritmo='random', cantidad_globos=3):
         super().__init__()
         self.grid = MultiGrid(ancho, alto, True)
-        self.schedule = RandomActivation(self)
+        self.schedule = SimultaneousActivation(self)
         self.algoritmo = algoritmo
         self.cantidad_globos = cantidad_globos
         self.bomberman = None
