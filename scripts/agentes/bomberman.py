@@ -8,6 +8,8 @@ from .roca_destructible import RocaDestructible
 from .salida import Salida
 from .globo import Globo  # Asegúrate de tener la clase Globo definida
 from heapq import heappop, heappush
+from .bomba import Bomba
+import heapq
 
 class Bomberman(Agent):
     def __init__(self, unique_id, model,algoritmo='random', vida=1, beam_width = 3):
@@ -20,10 +22,13 @@ class Bomberman(Agent):
         self.algoritmo = algoritmo
         self.visit_count = 0  # Contador de pasos
         self.vida = vida  # Nueva propiedad de vida
+        self.priorityqueue = []  # Usado para Beam Search
         self.beam_width = 2
         self.camino = []
         self.listica=[]
-
+        self.bombs = []  # Lista de bombas colocadas
+        self.bomb_placed = False  # Indica si se colocó una bomba
+        
     def seleccionar_algoritmo(self):
         if self.algoritmo == 'random':
             self.step2()
@@ -191,88 +196,93 @@ class Bomberman(Agent):
                                 return
     
     def stepBeamSearch(self):
-        """Algoritmo de Beam Search modificado con retroceso completo al primer nivel, 
-        expansión de los n mejores nodos de menor coste, y búsqueda de nodos no visitados en niveles anteriores.
-        Prioridad de movimientos: izquierda, arriba, derecha, abajo."""
-
-        # Inicializar el nodo inicial en la cola de prioridad y la estructura de niveles
+        """Beam Search con colocación de bombas y destrucción de rocas destructibles."""
         if not self.priorityqueue:
-            initial_state = (self.heuristic(self.pos), 0, [self.pos])  # [heuristic_score, idx, path]
+            # Inicializar el nodo inicial
+            initial_state = (self.heuristic(self.pos), [self.pos])
             heapq.heappush(self.priorityqueue, initial_state)
-            self.level_nodes = [[]]  # Estructura para almacenar nodos por nivel
 
-        while self.priorityqueue:
-            # Seleccionar los n mejores nodos de menor coste y expandir cada uno de ellos
-            current_level = heapq.nsmallest(self.beam_width, self.priorityqueue)
-            self.priorityqueue.clear()  # Limpiar la cola para agregar los nuevos nodos generados
-            
-            for _, _, path in current_level:  # Modificación para ajustar el desempaquetado a tres valores
-                posicion_actual = path[-1]
+        if self.priorityqueue:
+            _, path = heapq.heappop(self.priorityqueue)
+            posicion_actual = path[-1]
 
-                # Verificar si Bomberman ha alcanzado la salida
-                if any(isinstance(agente, Salida) for agente in self.model.grid.get_cell_list_contents(posicion_actual)):
-                    print("¡Bomberman ha llegado a la salida!")
-                    self.model.running = False
-                    return
+            # Mover Bomberman a la posición actual
+            self.model.grid.move_agent(self, posicion_actual)
+            self.visitados.add(posicion_actual)
+            self.marcar_casilla(posicion_actual)
 
-                # Agregar la posición actual a la lista de visitados y mover Bomberman a esa posición
-                self.visitados.add(posicion_actual)
-                self.model.grid.move_agent(self, posicion_actual)
-                self.marcar_casilla(posicion_actual)  # Visualizar el movimiento
+            # Verificar si Bomberman llegó a la salida
+            if any(isinstance(agente, Salida) for agente in self.model.grid.get_cell_list_contents(posicion_actual)):
+                print("¡Bomberman ha llegado a la salida!")
+                self.model.running = False
+                return
 
-                # Evaluar interacciones con enemigos en la posición actual
-                if self.interaccion_con_globo(posicion_actual):
-                    if self.vida <= 0:
+            # Detectar contenido de celdas adyacentes
+            movimientos = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+            for dx, dy in movimientos:
+                nueva_posicion = (posicion_actual[0] + dx, posicion_actual[1] + dy)
+                if self.model.grid.out_of_bounds(nueva_posicion) or nueva_posicion in self.visitados:
+                    continue
+
+                contenido_celda = self.model.grid.get_cell_list_contents(nueva_posicion)
+                if any(isinstance(agente, RocaDestructible) for agente in contenido_celda):
+                    if not self.bomb_placed:
+                        self.colocar_bomba(posicion_actual)
+                        self.bomb_placed = True
+                        print(f"Bomba colocada en {posicion_actual}. Apuntando a {nueva_posicion}.")
                         return
 
-                # Generar hijos (movimientos posibles) y agregar a la cola de prioridad
-                movimientos = [(-1,0),(0,1),(1,0),(0,-1)]  # Orden de prioridad: izquierda, arriba, derecha, abajo
-                next_level = []
-                for idx, movimiento in enumerate(movimientos):
-                    nueva_posicion = (posicion_actual[0] + movimiento[0], posicion_actual[1] + movimiento[1])
+                if any(isinstance(agente, MuroMetal) for agente in contenido_celda):
+                    continue
 
-                    # Verificar si la posición es válida y no visitada
-                    if self.model.grid.out_of_bounds(nueva_posicion) or nueva_posicion in self.visitados:
-                        continue
+                # Agregar nuevas posiciones a explorar
+                nuevo_camino = path + [nueva_posicion]
+                heuristic_score = self.heuristic(nueva_posicion)
+                heapq.heappush(self.priorityqueue, (heuristic_score, nuevo_camino))
 
-                    # Evitar obstáculos
-                    contenido_celda = self.model.grid.get_cell_list_contents(nueva_posicion)
-                    if any(isinstance(agente, (MuroMetal, RocaDestructible)) for agente in contenido_celda):
-                        continue
-
-                    # Calcular heurística ajustada según la prioridad del movimiento
-                    new_path = path + [nueva_posicion]
-                    heuristic_score = self.heuristic(nueva_posicion)
-
-                    # Agregar el nuevo nodo hijo a la lista `next_level` con el índice para el orden de desempate
-                    heapq.heappush(next_level, (heuristic_score, idx, new_path))
-
-                # Agregar los nodos generados al `priorityqueue` para el próximo ciclo
-                for heuristic_score, idx, new_path in next_level:
-                    heapq.heappush(self.priorityqueue, (heuristic_score, idx, new_path))
-
-            # Seleccionar nuevamente los n mejores nodos de menor coste para el próximo ciclo
+            # Mantener los n mejores nodos en la cola
             self.priorityqueue = heapq.nsmallest(self.beam_width, self.priorityqueue)
-            self.level_nodes.append(next_level)
 
-            # Si no quedan más nodos en el nivel actual, retroceder y buscar nodos no visitados
-            if not self.priorityqueue:
-                for level in self.level_nodes:
-                    unvisited_nodes = [(score, idx, path) for score, idx, path in level if path[-1] not in self.visitados]
-                    if unvisited_nodes:
-                        self.priorityqueue = heapq.nsmallest(self.beam_width, unvisited_nodes)
-                        break
-                else:
-                    # Si no hay más nodos no visitados, terminar la búsqueda
-                    print("No se ha encontrado la salida y no hay más nodos por visitar.")
-                    self.model.running = False
-                    return
+        if not self.priorityqueue:
+            print("No se encontró una salida. Fin del juego.")
+            self.model.running = False
 
-    
+
+    def destruir_roca(self, posicion):
+        """Destruye una roca destructible en la posición indicada."""
+        contenido_celda = self.model.grid.get_cell_list_contents(posicion)
+        roca = next((agente for agente in contenido_celda if isinstance(agente, RocaDestructible)), None)
+        if roca:
+            self.model.grid.remove_agent(roca)
+            print(f"Roca destruida en {posicion}.")
+
+    def find_safe_positions(self):
+        """Encuentra posiciones seguras alejadas de bombas."""
+        movimientos = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+        safe_positions = []
+        for dx, dy in movimientos:
+            nueva_posicion = (self.pos[0] + dx, self.pos[1] + dy)
+            if self.model.grid.out_of_bounds(nueva_posicion):
+                continue
+
+            contenido_celda = self.model.grid.get_cell_list_contents(nueva_posicion)
+            if not any(isinstance(agente, Bomba) for agente in contenido_celda):
+                safe_positions.append(nueva_posicion)
+
+        return safe_positions
+
     def heuristic(self, posicion):
         """Función heurística para estimar la distancia a la salida."""
         salida_pos = self.model.salida_pos
         return abs(posicion[0] - salida_pos[0]) + abs(posicion[1] - salida_pos[1])
+    
+    def colocar_bomba(self, posicion):
+        """Coloca una bomba en la posición actual."""
+        bomba = Bomba(self.model.next_id(), self.model, posicion)
+        self.model.grid.place_agent(bomba, posicion)
+        self.bombs.append(bomba)
+        self.model.schedule.add(bomba)
+        self.bomb_placed = True
     
 
     def stepUniformCost(self):
@@ -325,7 +335,6 @@ class Bomberman(Agent):
                     heapq.heappush(self.priorityqueue, (nuevo_costo, nueva_posicion))
 
             return
-
 
     def stepHillClimbing(self):
         """Algoritmo de Hill Climbing por decisiones, mostrando paso a paso el recorrido de Bomberman, avanzando una casilla por cada llamada."""
