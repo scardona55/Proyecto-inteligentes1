@@ -13,16 +13,52 @@ class MiModelo(Model):
         self.cantidad_globos = cantidad_globos  # Cantidad de enemigos Globo a generar
         self.bomberman = None  # Atributo para almacenar la referencia a Bomberman
         self.salida_pos = None
-        
+        self.alto=alto
+        self.ancho=ancho
 
         if mapa is not None:
             self.cargar_mapa(mapa)
         else:
             self.crear_mapa_aleatorio(ancho, alto)
 
+    def recorrer_mundo_grilla(self):
+        """Recorre todas las celdas de la grilla de abajo hacia arriba y devuelve una matriz con el contenido de cada celda."""
+
+        # Crear una lista para almacenar las filas del mapa (esto es una matriz)
+        mundo = [[None] * self.grid.width for _ in range(self.grid.height)]
+
+        # Recorrer la grilla de abajo hacia arriba
+        for y in range(self.grid.height - 1, -1, -1):  # Recorrer filas de abajo hacia arriba
+            for x in range(self.grid.width):  # Recorrer columnas (ancho de la grilla)
+                cell = self.grid.get_cell_list_contents((x, y))  # Obtener los agentes en la celda (x, y)
+                
+                # Determinar el tipo de agente y asignar el valor correspondiente en la matriz
+                if any(isinstance(obj, Bomberman) for obj in cell):
+                    mundo[y][x] = 'Bomberman'  # Asignar 'Bomberman' en la posición de la matriz
+                elif any(isinstance(obj, Globo) for obj in cell):
+                    mundo[y][x] = 'Globo'  # Asignar 'Globo'
+                elif any(isinstance(obj, Salida) for obj in cell):
+                    mundo[y][x] = 'Salida'  # Asignar 'Salida'
+                elif any(isinstance(obj, MuroMetal) for obj in cell):
+                    mundo[y][x] = 'MuroMetal'  # Asignar 'MuroMetal'
+                elif any(isinstance(obj, RocaDestructible) for obj in cell):
+                    mundo[y][x] = 'RocaDestructible'  # Asignar 'RocaDestructible'
+                elif any(isinstance(obj, Camino) for obj in cell):
+                    mundo[y][x] = 'Camino'  # Asignar 'Camino'
+                else:
+                    mundo[y][x] = 'Vacío'  # Asignar 'Vacío' si no hay nada en la celda
+
+        # Invertir el orden de las filas de la matriz
+        mundo.reverse()  # Esto invierte el orden de las filas
+
+        # Retornar la matriz final
+        return mundo
+
+
+
     def crear_mapa_aleatorio(self, ancho, alto):
         # Colocar Bomberman en una posición aleatoria libre
-        self.bomberman = Bomberman(self.next_id(), self)  # Almacena la referencia
+        self.bomberman = Bomberman(self.next_id(), self)  # Pasar posiciones_globos
         self.schedule.add(self.bomberman)
         posicion_bomberman = self._posicion_aleatoria_libre()
         self.grid.place_agent(self.bomberman, posicion_bomberman)
@@ -100,6 +136,7 @@ class MiModelo(Model):
                     globo = Globo(self.next_id(), self)
                     self.schedule.add(globo)
                     self.grid.place_agent(globo, (x, y))
+
                 elif celda == 'M':
                     muro_metal = MuroMetal(self.next_id(), self)
                     self.schedule.add(muro_metal)
@@ -123,11 +160,14 @@ class MiModelo(Model):
             raise ValueError("No hay posiciones libres disponibles en el mapa.")
         
         return random.choice(posiciones_libres)
+    
 
     def step(self):
         """Ejecuta un paso de la simulación, seleccionando el algoritmo de movimiento para Bomberman y Globo."""
         for agente in self.schedule.agents:
             if isinstance(agente, Bomberman):
+                mapa = self.recorrer_mundo_grilla()  # Obtenemos el mapa en formato lista de listas
+                print(mapa)
                 if self.algoritmo == 'random':
                     agente.step2() 
                 elif self.algoritmo == 'profundidad':
@@ -141,9 +181,12 @@ class MiModelo(Model):
                 elif self.algoritmo == 'Hill':
                     agente.stepHillClimbing()
                 elif self.algoritmo == 'A*':
-                    agente.Aestrella()
+                    agente.Aestrella(mapa)
+                elif self.algoritmo == 'alfa-beta':
+                    agente.mejor_movimiento(mapa)
             elif isinstance(agente, Globo):
-                agente.mover_aleatorio()
+                agente.mejores_movimientos_globos(mapa)
             else:
                 agente.step()
-
+        
+    
