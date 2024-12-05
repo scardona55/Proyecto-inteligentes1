@@ -5,9 +5,6 @@ from scripts.agentes.roca_destructible import RocaDestructible
 from itertools import product
 from .camino import Camino
 
-
-
-
 class Globo(Agent):
     """Clase que representa un enemigo Globo."""
 
