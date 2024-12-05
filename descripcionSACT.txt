@@ -1,0 +1,36 @@
+para poder implemmentar esta funcionalidad debemos meter un contador, una variable que
+aumente cada vez que algo sea podado el cual nos permita ir mirando los nodos que fueron podados 
+las modificaciones la realizaremos en bomberman 
+
+primero en la linea 607 es donde inicia nuestro algoritmo, vamso a añadir el contador en la siguiente linea, 
+aca estamos inicializando nuestro contador, esta variable sera para guardar este calculo que lo llamaremos-actualizaremos mas adelante
+if not hasattr(self, 'nodos_podados'):
+            self.nodos_podados = 0
+
+
+if beta <= alfa:
+    break
+esta funciopn es la condicion para salir, para dejar de evaluar, aca realizamos la poda, por lo cual aca pondremos nuestro 
+contador apra que aumente cada vez que se realice esto 
+
+if beta <= alfa:
+    self.nodos_podados += 1
+    break
+
+lo mismo lo repetiremos con las demas partes donde veamos esta funcionalidad; en la linea 674 aplicamos lo mismo
+if beta <= alfa:
+    self.nodos_podados += 1
+    break
+
+y ya para la visualizacion de este modificamos en la linea 748
+
+
+En esta parte cuando llamamos el algoritmo, ya podemos imprimir el contador asi que modificamos y agregamos 
+valor = self.alfa_beta(nuevo_mapa, 6, float('-inf'), float('inf'), False)
+print(f"Movimiento {movimiento}, valor: {valor}")
+print(f"Nodos podados: {self.nodos_podados}")
+
+y con esto ya cada vez que se ejecute un paso 
+el algorimo evalua los nodos y toma la mejor decision borrando todo lo demas y en la consola
+ se nos imprimiran los datos que tenemos de defecto y ahora el contador 
+

@@ -6,7 +6,7 @@ from .camino import Camino
 from .muro_metal import MuroMetal
 from .roca_destructible import RocaDestructible
 from .salida import Salida
-from .globo import Globo  # Asegúrate de tener la clase Globo definida
+from .globo import Globo
 from heapq import heappop, heappush
 from .bomba import Bomba
 import heapq
@@ -90,7 +90,6 @@ class Bomberman(Agent):
                     posiciones_globos.append((fila_idx, col_idx))
 
         return posiciones_globos
-
 
     def step2(self):
         #Movimientos random
@@ -247,7 +246,6 @@ class Bomberman(Agent):
             print("No se encontró una salida. Fin del juego.")
             self.model.running = False
 
-
     def destruir_roca(self, posicion):
         """Destruye una roca destructible en la posición indicada."""
         contenido_celda = self.model.grid.get_cell_list_contents(posicion)
@@ -284,7 +282,6 @@ class Bomberman(Agent):
         self.model.schedule.add(bomba)
         self.bomb_placed = True
     
-
     def stepUniformCost(self):
         if not self.priorityqueue:
             heapq.heappush(self.priorityqueue, (0, self.pos))
@@ -333,7 +330,6 @@ class Bomberman(Agent):
                 if nueva_posicion not in self.costos or nuevo_costo < self.costos[nueva_posicion]:
                     self.costos[nueva_posicion] = nuevo_costo
                     heapq.heappush(self.priorityqueue, (nuevo_costo, nueva_posicion))
-
             return
 
     def stepHillClimbing(self):
@@ -609,6 +605,10 @@ class Bomberman(Agent):
         return -dist_salida
 
     def alfa_beta(self, mapa, profundidad, alfa, beta, es_max):
+
+        if not hasattr(self, 'nodos_podados'):
+            self.nodos_podados = 0
+
         # Copiar el mapa para no modificar el original
         nuevo_mapa = [fila[:] for fila in mapa]
         
@@ -664,6 +664,7 @@ class Bomberman(Agent):
                     alfa = max(alfa, valor_max)
                     
                     if beta <= alfa:
+                        self.nodos_podados += 1
                         break
                 
                 # Restaurar el mapa
@@ -671,6 +672,7 @@ class Bomberman(Agent):
                 nuevo_mapa[pos_bomberman[0]][pos_bomberman[1]] = 'Bomberman'
                 
                 if beta <= alfa:
+                    self.nodos_podados += 1
                     break
             
             return valor_max
@@ -703,6 +705,7 @@ class Bomberman(Agent):
                 beta = min(beta, valor_min)
                 
                 if beta <= alfa:
+                    self.nodos_podados += 1
                     break
             
             return valor_min
@@ -744,6 +747,7 @@ class Bomberman(Agent):
                 
                 valor = self.alfa_beta(nuevo_mapa, 6, float('-inf'), float('inf'), False)
                 print(f"Movimiento {movimiento}, valor: {valor}")
+                print(f"Nodos podados: {self.nodos_podados}")
             
             if valor > mejor_valor:
                 mejor_valor = valor
