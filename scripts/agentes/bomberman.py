@@ -732,6 +732,16 @@ class Bomberman(Agent):
                 nuevo_mapa[pos_bomberman[0]][pos_bomberman[1]] = 'Camino'
                 nuevo_mapa[movimiento[0]][movimiento[1]] = 'Bomberman'
                 
+                # Verificar si Bomberman ha llegado a la salida
+                if (
+                    0 <= movimiento[0] < len(self.model.grid._grid) and 
+                    0 <= movimiento[1] < len(self.model.grid._grid[0]) and 
+                    any(isinstance(agente, Salida) for agente in self.model.grid.get_cell_list_contents(movimiento))
+                ):
+                    print(f"¡Bomberman ha llegado a la salida en {movimiento}!")
+                    self.model.running = False  # Detener la simulación
+                    return  # Salir del método para evitar que el agente siga moviéndose
+                
                 valor = self.alfa_beta(nuevo_mapa, 6, float('-inf'), float('inf'), False)
                 print(f"Movimiento {movimiento}, valor: {valor}")
             
@@ -748,5 +758,4 @@ class Bomberman(Agent):
         self.model.grid.move_agent(self, mejor_mov_adaptado)
         self.marcar_casilla(mejor_mov_adaptado) 
         return mejor_mov_adaptado if mejor_mov_adaptado is not None else pos_bomberman
-    
-    
+
