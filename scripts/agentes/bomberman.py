@@ -28,6 +28,7 @@ class Bomberman(Agent):
         self.listica=[]
         self.bombs = []  # Lista de bombas colocadas
         self.bomb_placed = False  # Indica si se colocó una bomba
+        self.podados=0
         
     def seleccionar_algoritmo(self):
         if self.algoritmo == 'random':
@@ -638,7 +639,7 @@ class Bomberman(Agent):
                 nuevo_mapa[pos_bomberman[0]][pos_bomberman[1]] = 'Camino'
                 nuevo_mapa[mov_bomberman[0]][mov_bomberman[1]] = 'Bomberman'
                 
-                # Generar movimientos de globos
+                """ # Generar movimientos de globos
                 movs_globos = self.generar_movimientos_globos(nuevo_mapa, pos_globos)
 
                 # Si no hay movimientos de globos, seguir con el actual
@@ -650,28 +651,29 @@ class Bomberman(Agent):
                     mapa_simulado = [fila[:] for fila in nuevo_mapa]
                     for (pos_orig, pos_dest) in zip(pos_globos, movs_globo):
                         mapa_simulado[pos_orig[0]][pos_orig[1]] = 'Camino'
-                        mapa_simulado[pos_dest[0]][pos_dest[1]] = 'Globo'
+                        mapa_simulado[pos_dest[0]][pos_dest[1]] = 'Globo' """
                     
-                    valor = self.alfa_beta(
-                        mapa_simulado, 
-                        profundidad - 1, 
-                        alfa, 
-                        beta, 
-                        False
-                    )
-                    
-                    valor_max = max(valor_max, valor)
-                    alfa = max(alfa, valor_max)
-                    
-                    if beta <= alfa:
-                        break
+                valor = self.alfa_beta(
+                    nuevo_mapa, 
+                    profundidad - 1, 
+                    alfa, 
+                    beta, 
+                    False
+                )
+                
+                valor_max = max(valor_max, valor)
+                alfa = max(alfa, valor_max)
+                
+                if beta <= alfa:
+                    self.podados=self.podados+1
+                    break
                 
                 # Restaurar el mapa
                 nuevo_mapa[mov_bomberman[0]][mov_bomberman[1]] = 'Camino'
                 nuevo_mapa[pos_bomberman[0]][pos_bomberman[1]] = 'Bomberman'
                 
-                if beta <= alfa:
-                    break
+                """ if beta <= alfa:
+                    break """
             
             return valor_max
         
@@ -703,6 +705,7 @@ class Bomberman(Agent):
                 beta = min(beta, valor_min)
                 
                 if beta <= alfa:
+                    self.podados=self.podados+1
                     break
             
             return valor_min
@@ -732,15 +735,14 @@ class Bomberman(Agent):
                 nuevo_mapa[pos_bomberman[0]][pos_bomberman[1]] = 'Camino'
                 nuevo_mapa[movimiento[0]][movimiento[1]] = 'Bomberman'
                 
-                valor = self.alfa_beta(nuevo_mapa, 6, float('-inf'), float('inf'), False)
+                valor = self.alfa_beta(nuevo_mapa, 5, float('-inf'), float('inf'), False)
                 print(f"Movimiento {movimiento}, valor: {valor}")
             
             if valor > mejor_valor:
                 mejor_valor = valor
                 mejor_mov = movimiento
         
-        print(f"La mejor posición de Bomberman es: {mejor_mov}")
-        
+        print(f"La mejor posición de Bomberman es: {mejor_mov}, la cantidad de nodos podados fueron {self.podados}")
         # Intercambiar x e y, e invertir y
         altura_matriz = len(mapa)
         mejor_mov_adaptado = (mejor_mov[1], altura_matriz - 1 - mejor_mov[0]) if mejor_mov else pos_bomberman

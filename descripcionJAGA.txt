@@ -1,0 +1,20 @@
+Para obtener la cantidad de nodos podados lo que se hizo fue en la clase bomberman, 
+fue generar un atributo llamado self.podados para guardar la cantidad de nodos podados, luego
+se tomó esta parte del código 
+"if beta <= alfa:
+    break" que lo que hace es hacer break cuando beta es menor igual a alfa, es decir se hace la poda. entonces
+
+como cada vez que ocurre esto se hace la poda se implementó un contador de self.podados de la siguiente forma:
+"if beta <= alfa:
+    self.podados=self.podados+1
+    break"
+
+esto aplica para cuando sea bomberman como para el turno de los globos
+
+de esta manera contamos la cantidad de podados.
+
+Ahora para saber la cantidad de podados lo que se hizo fue que cuando se muestra el mejor movimiento
+que es después de haber obtenido todas las opciones y haber escogido la mejor lo que se hace es mostrar
+la variable self.podados de esta forma en la función mejor movimiento:
+
+    print(f"La mejor posición de Bomberman es: {mejor_mov}, la cantidad de nodos podados fueron {self.podados}")

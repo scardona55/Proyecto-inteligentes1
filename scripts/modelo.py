@@ -184,10 +184,10 @@ class MiModelo(Model):
                     agente.mejor_movimiento(mapa)
 
             if isinstance(agente, Globo):
-                agente.mejor_movimiento(mapa)  # Manejar movimiento individual y impresión dentro de la clase Globo
+                #agente.mejor_movimiento(mapa)  # Manejar movimiento individual y impresión dentro de la clase Globo
 
-        # Después de mover todos los agentes, obtener el mapa actualizado
-        mapa_actualizado = self.recorrer_mundo_grilla()
-        print("\nEstado del mapa después del paso:")
-        for fila in mapa_actualizado:
-            print(fila)
+                """ # Después de mover todos los agentes, obtener el mapa actualizado
+                mapa_actualizado = self.recorrer_mundo_grilla()
+                print("\nEstado del mapa después del paso:")
+                for fila in mapa_actualizado:
+                    print(fila) """
