@@ -732,7 +732,7 @@ class Bomberman(Agent):
                 nuevo_mapa[pos_bomberman[0]][pos_bomberman[1]] = 'Camino'
                 nuevo_mapa[movimiento[0]][movimiento[1]] = 'Bomberman'
                 
-                valor = self.alfa_beta(nuevo_mapa, 4, float('-inf'), float('inf'), False)
+                valor = self.alfa_beta(nuevo_mapa, 6, float('-inf'), float('inf'), False)
                 print(f"Movimiento {movimiento}, valor: {valor}")
             
             if valor > mejor_valor:

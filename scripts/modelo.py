@@ -156,9 +156,14 @@ class MiModelo(Model):
     
 
     def step(self):
-        mapa = self.recorrer_mundo_grilla()  # Obtenemos el mapa en formato lista de listas
-        print(mapa)
-        
+        """Realiza un paso en el juego, actualizando todos los agentes."""
+        # Obtener el mapa actual antes de mover los agentes
+        mapa = self.recorrer_mundo_grilla()
+        print("\nEstado actual del mapa:")
+        for fila in mapa:
+            print(fila)
+
+        # Iterar sobre todos los agentes y ejecutar sus pasos correspondientes
         for agente in self.schedule.agents:
             if isinstance(agente, Bomberman):
                 if self.algoritmo == 'random':
@@ -179,19 +184,10 @@ class MiModelo(Model):
                     agente.mejor_movimiento(mapa)
 
             if isinstance(agente, Globo):
-                #mejores_movimientos = agente.mejores_movimientos_globos(mapa)
-                #agente.mover_globo(mejores_movimientos, len(mapa))
-                agente.stepsito()
-        """ # Procesar globos
-        globos = [agente for agente in self.schedule.agents if isinstance(agente, Globo)]
-        if globos:
-            mejores_movimientos = Globo.mejores_movimientos_globos(mapa)
-            Globo.mover_globos(mejores_movimientos, self.grid, mapa, self.alto)
-        
-        # Verificar condiciones de finalización
-        pos_bomberman = self.bomberman.pos
-        pos_salida = self.salida_pos
-        pos_globos = Globo.encontrar_globos(mapa)
-        
-        print(f"DEBUG: Posición de Bomberman: {pos_bomberman}")
-        print(f"DEBUG: Posición de la Salida: {pos_salida}") """
+                agente.mejor_movimiento(mapa)  # Manejar movimiento individual y impresión dentro de la clase Globo
+
+        # Después de mover todos los agentes, obtener el mapa actualizado
+        mapa_actualizado = self.recorrer_mundo_grilla()
+        print("\nEstado del mapa después del paso:")
+        for fila in mapa_actualizado:
+            print(fila)
