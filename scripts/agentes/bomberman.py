@@ -419,7 +419,6 @@ class Bomberman(Agent):
 
     def Aestrella(self,mapa):
         mapa=self.encontrar_globos(mapa)
-        print(mapa)
         # Inicialización de variables si es la primera vez que se llama al método
         if not hasattr(self, 'initialized') or not self.initialized:
             self.came_from = {}     # Diccionario para reconstruir el camino
@@ -508,7 +507,7 @@ class Bomberman(Agent):
             for c in range(len(mapa[0])):
                 if mapa[f][c] == 'Bomberman':
                     return (f, c)
-        return (0, 0)  # Posición por defecto si no se encuentra
+        return (0, 0)
     
     def encontrar_globos(self, mapa):
         globos = []
@@ -532,7 +531,7 @@ class Bomberman(Agent):
                 mapa[f][c] not in ['MuroMetal', 'RocaDestructible'])
     
     def generar_movimientos_bomberman(self, mapa, pos_actual):
-        direcciones = [(0, -1), (-1, 0), (0, 1), (1, 0)]  # Izq, Arriba, Der, Abajo
+        direcciones = [(0, -1), (1, 0), (0, 1), (-1, 0)]  # Izq, Arriba, Der, Abajo
         movimientos_validos = []
         
         for df, dc in direcciones:
@@ -547,7 +546,7 @@ class Bomberman(Agent):
         
         for pos_globo in pos_globos:
             movimientos_globo = []
-            direcciones = [(0, -1), (-1, 0), (0, 1), (1, 0)]  # Izq, Arriba, Der, Abajo
+            direcciones = [(0, -1), (1, 0), (0, 1), (-1, 0)]  # Izq, Arriba, Der, Abajo
             
             for df, dc in direcciones:
                 nueva_pos = (pos_globo[0] + df, pos_globo[1] + dc)
@@ -555,33 +554,60 @@ class Bomberman(Agent):
                     nueva_pos not in pos_globos):
                     movimientos_globo.append(nueva_pos)
             
-            movimientos_globos_lista.append(movimientos_globo)
-        
+            movimientos_globos_lista.append(movimientos_globo)        
         return self.generar_combinaciones_movimientos(movimientos_globos_lista)
     
     def generar_combinaciones_movimientos(self, movimientos_globos):
         from itertools import product
-        return list(product(*movimientos_globos)) if movimientos_globos else []
+        combinaciones = list(product(*movimientos_globos)) if movimientos_globos else []
+        
+        # Filtrar combinaciones donde dos globos se mueven a la misma posición
+        combinaciones_unicas = [
+            combinacion for combinacion in combinaciones 
+            if len(combinacion) == len(set(combinacion))
+        ]
+        
+        return combinaciones_unicas
     
     def distancia_manhattan(self, pos1, pos2):
         return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
     
     def calcular_heuristica(self, pos_bomberman, pos_globos, pos_salida):
+        # Asegurar que pos_globos sea una lista de tuplas
         if pos_globos is None:
             pos_globos = []
+        elif isinstance(pos_globos, tuple):
+            pos_globos = [pos_globos]
         
+        # Distancia a la salida (objetivo principal)
         dist_salida = self.distancia_manhattan(pos_bomberman, pos_salida)
         
-        # Si no hay globos, solo nos importa la distancia a la salida
-        if not pos_globos:
-            return -dist_salida  # Minimizar distancia a la salida
+        # Si el movimiento es a la posición de un globo, retorna el peor valor posible
+        if any(pos_bomberman == pos_globo for pos_globo in pos_globos):
+            return float('-inf')
         
+        # Si no hay globos, simplemente retorna el negativo de la distancia a la salida
+        if not pos_globos:
+            return -dist_salida
+        
+        # Calcular la distancia mínima a cualquier globo
         dist_globos = min(
             self.distancia_manhattan(pos_bomberman, pos_globo) 
             for pos_globo in pos_globos
         )
-        return dist_salida - dist_globos
-    
+        
+        # Factor de penalización por cercanía a globos
+        # Cuanto más cerca esté de un globo, mayor será la penalización
+        FACTOR_SEGURIDAD = 10  # Ajustable según la sensibilidad deseada
+        
+        if dist_globos <= 2:  # Si está a 2 o menos pasos de un globo
+            # Penalización exponencial cuanto más cerca esté
+            penalizacion = FACTOR_SEGURIDAD * (3 - dist_globos)**2
+            return -dist_salida - penalizacion
+        
+        # Si está lo suficientemente lejos, prioriza camino a la salida
+        return -dist_salida
+
     def alfa_beta(self, mapa, profundidad, alfa, beta, es_max):
         # Copiar el mapa para no modificar el original
         nuevo_mapa = [fila[:] for fila in mapa]
@@ -596,9 +622,12 @@ class Bomberman(Agent):
             return self.calcular_heuristica(pos_bomberman, pos_globos, pos_salida)
         
         # Verificar estado terminal
-        if (pos_bomberman in pos_globos or 
-            pos_bomberman == pos_salida):
-            return float('inf') if pos_bomberman == pos_salida else float('-inf')
+        for pos_globo in pos_globos:
+            if pos_bomberman == pos_globo:
+                return float('-inf')  # Choque con globo
+        
+        if pos_bomberman == pos_salida:
+            return float('inf')  # Llegada a salida
         
         if es_max:  # Turno de Bomberman (maximizar)
             valor_max = float('-inf')
@@ -611,7 +640,7 @@ class Bomberman(Agent):
                 
                 # Generar movimientos de globos
                 movs_globos = self.generar_movimientos_globos(nuevo_mapa, pos_globos)
-                
+
                 # Si no hay movimientos de globos, seguir con el actual
                 if not movs_globos:
                     movs_globos = [pos_globos]
@@ -637,12 +666,17 @@ class Bomberman(Agent):
                     if beta <= alfa:
                         break
                 
+                # Restaurar el mapa
+                nuevo_mapa[mov_bomberman[0]][mov_bomberman[1]] = 'Camino'
+                nuevo_mapa[pos_bomberman[0]][pos_bomberman[1]] = 'Bomberman'
+                
                 if beta <= alfa:
                     break
             
             return valor_max
         
         else:  # Turno de Globos (minimizar)
+            # Lógica similar a la parte de Bomberman, pero minimizando
             valor_min = float('inf')
             movs_globos = self.generar_movimientos_globos(mapa, pos_globos)
             
@@ -672,7 +706,7 @@ class Bomberman(Agent):
                     break
             
             return valor_min
-    
+
     def mejor_movimiento(self, mapa):
         mejor_valor = float('-inf')
         mejor_mov = None
@@ -684,19 +718,35 @@ class Bomberman(Agent):
         if not movimientos_posibles:
             return pos_bomberman
         
+        # Imprimir movimientos posibles para depuración
+        print("Movimientos posibles:", movimientos_posibles)
+        
         for movimiento in movimientos_posibles:
-            # Simular movimiento
-            nuevo_mapa = [fila[:] for fila in mapa]
-            nuevo_mapa[pos_bomberman[0]][pos_bomberman[1]] = 'Camino'
-            nuevo_mapa[movimiento[0]][movimiento[1]] = 'Bomberman'
-            
-            valor = self.alfa_beta(nuevo_mapa, 4, float('-inf'), float('inf'), False)
+            # Verificar si el movimiento resulta en una colisión con un Globo
+            if mapa[movimiento[0]][movimiento[1]] == 'Globo':
+                valor = float('-inf')
+                print(f"Movimiento {movimiento} resulta en una colisión con un Globo.")
+            else:
+                # Simular movimiento
+                nuevo_mapa = [fila[:] for fila in mapa]
+                nuevo_mapa[pos_bomberman[0]][pos_bomberman[1]] = 'Camino'
+                nuevo_mapa[movimiento[0]][movimiento[1]] = 'Bomberman'
+                
+                valor = self.alfa_beta(nuevo_mapa, 4, float('-inf'), float('inf'), False)
+                print(f"Movimiento {movimiento}, valor: {valor}")
             
             if valor > mejor_valor:
                 mejor_valor = valor
                 mejor_mov = movimiento
-        print(f"la mejor pos bomb es: {mejor_mov}")
-        self.model.grid.move_agent(self, mejor_mov)
-        self.marcar_casilla(mejor_mov)
         
-        return mejor_mov if mejor_mov is not None else pos_bomberman
+        print(f"La mejor posición de Bomberman es: {mejor_mov}")
+        
+        # Intercambiar x e y, e invertir y
+        altura_matriz = len(mapa)
+        mejor_mov_adaptado = (mejor_mov[1], altura_matriz - 1 - mejor_mov[0]) if mejor_mov else pos_bomberman
+
+        self.model.grid.move_agent(self, mejor_mov_adaptado)
+        self.marcar_casilla(mejor_mov_adaptado) 
+        return mejor_mov_adaptado if mejor_mov_adaptado is not None else pos_bomberman
+    
+    

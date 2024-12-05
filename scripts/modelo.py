@@ -156,10 +156,11 @@ class MiModelo(Model):
     
 
     def step(self):
+        mapa = self.recorrer_mundo_grilla()  # Obtenemos el mapa en formato lista de listas
+        print(mapa)
+        
         for agente in self.schedule.agents:
             if isinstance(agente, Bomberman):
-                mapa = self.recorrer_mundo_grilla()  # Obtenemos el mapa en formato lista de listas
-                print(mapa)
                 if self.algoritmo == 'random':
                     agente.step2()
                 elif self.algoritmo == 'profundidad':
@@ -176,9 +177,21 @@ class MiModelo(Model):
                     agente.Aestrella(mapa)
                 elif self.algoritmo == 'alfa-beta':
                     agente.mejor_movimiento(mapa)
-            elif isinstance(agente, Globo):
-                agente.mejores_movimientos_globos(mapa)
-            else:
-                agente.step()
+
+            if isinstance(agente, Globo):
+                #mejores_movimientos = agente.mejores_movimientos_globos(mapa)
+                #agente.mover_globo(mejores_movimientos, len(mapa))
+                agente.stepsito()
+        """ # Procesar globos
+        globos = [agente for agente in self.schedule.agents if isinstance(agente, Globo)]
+        if globos:
+            mejores_movimientos = Globo.mejores_movimientos_globos(mapa)
+            Globo.mover_globos(mejores_movimientos, self.grid, mapa, self.alto)
         
-    
+        # Verificar condiciones de finalización
+        pos_bomberman = self.bomberman.pos
+        pos_salida = self.salida_pos
+        pos_globos = Globo.encontrar_globos(mapa)
+        
+        print(f"DEBUG: Posición de Bomberman: {pos_bomberman}")
+        print(f"DEBUG: Posición de la Salida: {pos_salida}") """
